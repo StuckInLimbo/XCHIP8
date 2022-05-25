@@ -5,8 +5,9 @@
 #include <cstdio>
 #include <string>
 // SDL
-#include <glad/glad.h>
+//#include <glad/glad.h>
 #include <SDL.h>
+#include <SDL_opengl.h>
 // ImGui
 //#include "imgui-style.h"
 #include "imgui/imgui_impl_sdl.h"
@@ -75,15 +76,6 @@ int main(int argc, char* argv[]) {
 
     // enable VSync
     SDL_GL_SetSwapInterval(1);
-
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
-    {
-        std::cerr << "[ERROR] Couldn't initialize glad" << std::endl;
-    }
-    else
-    {
-        std::cout << "[INFO] glad initialized\n";
-    }
 
     glViewport(0, 0, windowWidth, windowHeight);
 

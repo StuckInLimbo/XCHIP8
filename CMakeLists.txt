@@ -7,9 +7,9 @@ project ("XCHIP8")
 
 find_package(OpenGL REQUIRED)
 
-add_library("glad" "${CMAKE_SOURCE_DIR}/glad/src/glad.c")
+# add_library("glad" "${CMAKE_SOURCE_DIR}/glad/src/glad.c")
 
-include_directories("${CMAKE_SOURCE_DIR}/glad/include")
+# include_directories("${CMAKE_SOURCE_DIR}/glad/include")
 
 # SDL Library
 find_library(SDL SDL2 PATHS "${CMAKE_SOURCE_DIR}/SDL/lib/x64")
@@ -44,6 +44,7 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET XCHIP8 PROPERTY CXX_STANDARD 20)
 endif()
 
-target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGL_gl_LIBRARY} "glad" ${SDL} ${SDLmain})
+#target_link_libraries(${CMAKE_PROJECT_NAME} "glad")
+target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGL_gl_LIBRARY} ${SDL} ${SDLmain})
 
 # TODO: Add tests and install targets if needed.
