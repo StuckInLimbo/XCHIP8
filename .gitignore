@@ -408,5 +408,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+# VS + CMake ignores
 .vs/
 out/
