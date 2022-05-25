@@ -5,18 +5,31 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("XCHIP8")
 
+if(UNIX AND NOT APPLE)
+    set(LINUX TRUE)
+endif()
+
 find_package(OpenGL REQUIRED)
 
-# add_library("glad" "${CMAKE_SOURCE_DIR}/glad/src/glad.c")
+# Glad Lib
+add_library("glad" "${CMAKE_SOURCE_DIR}/glad/src/glad.c")
 
-# include_directories("${CMAKE_SOURCE_DIR}/glad/include")
+include_directories("${CMAKE_SOURCE_DIR}/glad/include")
 
-# SDL Library
-find_library(SDL SDL2 PATHS "${CMAKE_SOURCE_DIR}/SDL/lib/x64")
-# SDL Main for windows
-find_library(SDLmain SDL2main PATHS "${CMAKE_SOURCE_DIR}/SDL/lib/x64")
-# headers
-include_directories("${CMAKE_SOURCE_DIR}/SDL/include")
+if(WIN32) 
+    message(STATUS ">>> Windows")
+    # SDL Library
+    find_library(SDL SDL2 PATHS "${CMAKE_SOURCE_DIR}/SDL/lib/x64")
+    # SDL Main for windows
+    find_library(SDLmain SDL2main PATHS "${CMAKE_SOURCE_DIR}/SDL/lib/x64")
+    # headers
+    include_directories("${CMAKE_SOURCE_DIR}/SDL/include")
+elseif(LINUX)
+    message(STATUS ">>> Linux")
+    # SDL Library
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
+endif()
 
 set(sources
     main.cpp
@@ -38,13 +51,20 @@ set(sources
 )
 
 # Add source to this project's executable.
-add_executable (XCHIP8 ${sources})
+if (WIN32)
+    add_executable (XCHIP8 WIN32 ${sources})
+else()
+    add_executable (XCHIP8 ${sources})
+endif()
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET XCHIP8 PROPERTY CXX_STANDARD 20)
 endif()
 
-#target_link_libraries(${CMAKE_PROJECT_NAME} "glad")
-target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGL_gl_LIBRARY} ${SDL} ${SDLmain})
+if (WIN32)
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGL_gl_LIBRARY} "glad" ${SDL} ${SDLmain})
+elseif(LINUX)
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGL_gl_LIBRARY} "glad" ${SDL2_LIBRARIES})
+endif()
 
 # TODO: Add tests and install targets if needed.
