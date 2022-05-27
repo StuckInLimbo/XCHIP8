@@ -12,18 +12,18 @@ endif()
 find_package(OpenGL REQUIRED)
 
 # Glad Lib
-add_library("glad" "${CMAKE_SOURCE_DIR}/glad/src/glad.c")
+add_library("glad" "${CMAKE_SOURCE_DIR}/src/glad/src/glad.c")
 
-include_directories("${CMAKE_SOURCE_DIR}/glad/include")
+include_directories("${CMAKE_SOURCE_DIR}/src/glad/include")
 
 if(WIN32) 
     message(STATUS ">>> Windows")
     # SDL Library
-    find_library(SDL SDL2 PATHS "${CMAKE_SOURCE_DIR}/SDL/lib/x64")
+    find_library(SDL SDL2 PATHS "${CMAKE_SOURCE_DIR}/src/SDL/lib/x64")
     # SDL Main for windows
-    find_library(SDLmain SDL2main PATHS "${CMAKE_SOURCE_DIR}/SDL/lib/x64")
+    find_library(SDLmain SDL2main PATHS "${CMAKE_SOURCE_DIR}/src/SDL/lib/x64")
     # headers
-    include_directories("${CMAKE_SOURCE_DIR}/SDL/include")
+    include_directories("${CMAKE_SOURCE_DIR}/src/SDL/include")
 elseif(LINUX)
     message(STATUS ">>> Linux")
     # SDL Library
@@ -32,25 +32,25 @@ elseif(LINUX)
 endif()
 
 set(sources
-    main.cpp
-    chip8.cpp
-    chip8.h
-    imgui/imconfig.h
-    imgui/imgui.cpp
-    imgui/imgui.h
-    imgui/imgui_demo.cpp
-    imgui/imgui_draw.cpp
-    imgui/imgui_internal.h
-    imgui/imgui_widgets.cpp
-    imgui/imgui_tables.cpp
-    imgui/imstb_rectpack.h
-    imgui/imstb_textedit.h
-    imgui/imstb_truetype.h
-    imgui/imgui_impl_opengl3.cpp
-    imgui/imgui_impl_opengl3.h
-    imgui/imgui_impl_sdl.cpp
-    imgui/imgui_impl_sdl.h
-    imgui/opensans.h
+    src/main.cpp
+    src/chip8.cpp
+    src/chip8.h
+    src/imgui/imconfig.h
+    src/imgui/imgui.cpp
+    src/imgui/imgui.h
+    src/imgui/imgui_demo.cpp
+    src/imgui/imgui_draw.cpp
+    src/imgui/imgui_internal.h
+    src/imgui/imgui_widgets.cpp
+    src/imgui/imgui_tables.cpp
+    src/imgui/imstb_rectpack.h
+    src/imgui/imstb_textedit.h
+    src/imgui/imstb_truetype.h
+    src/imgui/imgui_impl_opengl3.cpp
+    src/imgui/imgui_impl_opengl3.h
+    src/imgui/imgui_impl_sdl.cpp
+    src/imgui/imgui_impl_sdl.h
+    src/imgui/opensans.h
 )
 
 # Add source to this project's executable.
@@ -69,5 +69,3 @@ if (WIN32)
 elseif(LINUX)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGL_gl_LIBRARY} "glad" ${SDL2_LIBRARIES})
 endif()
-
-# TODO: Add tests and install targets if needed.
