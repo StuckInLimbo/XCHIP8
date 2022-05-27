@@ -33,6 +33,8 @@ endif()
 
 set(sources
     main.cpp
+    chip8.cpp
+    chip8.h
     imgui/imconfig.h
     imgui/imgui.cpp
     imgui/imgui.h
@@ -48,6 +50,7 @@ set(sources
     imgui/imgui_impl_opengl3.h
     imgui/imgui_impl_sdl.cpp
     imgui/imgui_impl_sdl.h
+    imgui/opensans.h
 )
 
 # Add source to this project's executable.
