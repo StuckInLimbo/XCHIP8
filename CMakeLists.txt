@@ -69,3 +69,10 @@ if (WIN32)
 elseif(LINUX)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGL_gl_LIBRARY} "glad" ${SDL2_LIBRARIES})
 endif()
+
+# Post build cmds
+add_custom_command(TARGET XCHIP8 POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory 
+                   ${CMAKE_SOURCE_DIR}/roms/ 
+                   $<TARGET_FILE_DIR:XCHIP8>/roms/
+)

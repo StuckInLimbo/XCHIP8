@@ -57,12 +57,12 @@ private:
 #pragma region Opcodes
 	// NOP
 	void OP_NULL();
-	// EXE (not used?)
-	//void OP_0nnn();
 	// CLS
 	void OP_00E0();
 	// RET
 	void OP_00EE();
+	// SYS addr
+	void OP_0nnn();
 	// JMP addr
 	void OP_1nnn();
 	// CALL addr

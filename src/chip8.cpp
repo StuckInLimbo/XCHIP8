@@ -193,6 +193,11 @@ void Chip8::OP_00EE() {
 	pc = stack[sp];
 }
 
+// Jump to a machine code routine at nnn.
+void Chip8::OP_0nnn() {
+	OP_NULL();
+}
+
 // Jump to address at nnn
 void Chip8::OP_1nnn() {
 	uint16_t addr = opcode & 0x0FFFu;
@@ -388,8 +393,8 @@ void Chip8::OP_Dxyn() {
 	uint8_t height = opcode & 0x000Fu;
 
 	// Wrap if going beyond screen boundaries
-	//uint8_t xPos = V[x] % VIDEO_WIDTH;
-	//uint8_t yPos = V[y] % VIDEO_HEIGHT;
+	uint8_t xPos = V[x] % VIDEO_WIDTH;
+	uint8_t yPos = V[y] % VIDEO_HEIGHT;
 
 	V[0xF] = 0;
 
@@ -398,8 +403,8 @@ void Chip8::OP_Dxyn() {
 
 		for (unsigned int col = 0; col < 8; ++col) {
 			uint8_t spritePixel = pixel & (0x80u >> col);
-			//uint32_t* screenPixel = &video[(yPos + row) * VIDEO_WIDTH + (xPos + col)];
-			uint32_t* screenPixel = &video[(row) * VIDEO_WIDTH + (col)];
+			uint32_t* screenPixel = &video[(yPos + row) * VIDEO_WIDTH + (xPos + col)];
+			//uint32_t* screenPixel = &video[(row) * VIDEO_WIDTH + (col)];
 
 			// Sprite pixel is on
 			if (spritePixel) {

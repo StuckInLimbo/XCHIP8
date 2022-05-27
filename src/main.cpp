@@ -21,8 +21,7 @@ int main(int argc, char* argv[]) {
 	int windowWidth = 960, windowHeight = 480;
 	bool showMenu = true;
 	bool showDemo = false;
-	char buf[128] = "roms/pong.ch8";
-	uint32_t pixels[2048];
+	char buf[128] = "roms/test.ch8";
 
 	// init SDL
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -103,7 +102,7 @@ int main(int argc, char* argv[]) {
 	ImGui_ImplOpenGL3_Init(glsl_version.c_str());
 
 	// colors are set in RGBA, but as float
-	ImVec4 background = ImVec4(25 / 255.0f, 25 / 255.0f, 25 / 255.0f, 1.00f);
+	ImVec4 background = ImVec4(80 / 255.0f, 80 / 255.0f, 80 / 255.0f, 1.00f);
 
 	glClearColor(background.x, background.y, background.z, background.w);
 
@@ -184,7 +183,7 @@ int main(int argc, char* argv[]) {
 					ImGuiCond_Always
 				);
 				// create a window and append into it
-				ImGui::Begin("Controls", NULL, ImGuiWindowFlags_NoResize);
+				ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
 
 				ImGui::Dummy(ImVec2(0.0f, 1.0f));
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Platform"); ImGui::SameLine();
@@ -203,7 +202,7 @@ int main(int argc, char* argv[]) {
 			if (chip8.isLoaded) {
 				ImGui::SetNextWindowPos(ImVec2(static_cast<float>(controls_width) + 20, 10), ImGuiCond_Always);
 				ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), static_cast<float>(sdl_height - 20)), ImGuiCond_Always);
-				ImGui::Begin("CHIP-8 DEBUG", NULL, ImGuiWindowFlags_NoResize);
+				ImGui::Begin("CHIP-8 Debug Window", NULL, ImGuiWindowFlags_NoResize);
 
 				ImGui::BeginChild("DebugL", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoScrollWithMouse);
 				ImGui::Text("opcode: %x", chip8.opcode);
@@ -224,39 +223,43 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
+
+		// Render ImGui
+		ImGui::Render();
+
 		// Render chip8 video memory as pixels via OpenGL
 		if (chip8.shouldDraw) {
+
 			chip8.shouldDraw = false;
 
-			// Store pixels in temporary buffer, technically should be not needed. 
-			for (int i = 0; i < 2048; ++i) {
-				uint8_t pixel = chip8.video[i];
-				pixels[i] = (0xFFFFFF00 * pixel) | 0x000000FF;
-			}
+			glEnable(GL_TEXTURE_2D);
 
-			// prepare chip8 framebuffer
+			//glViewport(0, 0, windowWidth, windowHeight);
+			//glClearColor(background.x, background.y, background.z, background.w);
+
+			// Generate OGL Texture ID ctx
 			GLuint rendTex;
 			glGenTextures(1, &rendTex);
-			// Give an empty image to OpenGL ( the last "0" )
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, windowWidth, windowHeight, 0,  GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, pixels);
-			// bind to nerly greated texture : all future texture functions will modify this texture
+			// bind to nerly created texture : all future texture functions will modify this texture
 			glBindTexture(GL_TEXTURE_2D, rendTex);
-			// Poor filtering. Needed !
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-			// Always check that our framebuffer is ok
-			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-				return -2;
+			// Filtering
+			/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);*/
 
-			// Render to our framebuffer
-			glBindFramebuffer(GL_FRAMEBUFFER, rendTex);
+			// Assign pixel buffer to texture
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, chip8.video);
+			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+			glDisable(GL_TEXTURE_2D);
 		}
 
-		// rendering
-		ImGui::Render();
+		// Render the window
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-		
+
+		// Swap framebuffers
 		SDL_GL_SwapWindow(window);
 	}
 
