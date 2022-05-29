@@ -7,88 +7,63 @@
 
 // OpenGL
 #include <glad/glad.h>
-#include <SDL.h>
+#include <GLFW/glfw3.h>
 #include "shader.h"
 
 // ImGui
-#include "imgui/imgui_impl_sdl.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include "imgui/imgui_impl_glfw.h"
 #include "imgui/opensans.h"
 
 // Program
 #include "chip8.h"
 
-bool textureIsReady = false;
+// \brief Callback for GLFW to resize the viewport whenever the window is resized
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+	glViewport(0, 0, width, height);
+}
 
-int main(int argc, char* argv[]) {
-	int windowWidth = 960, windowHeight = 480;
+// \brief Process input for GLFW Window
+void processInput(GLFWwindow* window) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+}
+
+int main() {
+	#pragma region Initialization
+	// Initialize GLFW, and set version + profile
+	glfwInit();
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	std::string glsl_version = "#version 130";
+	#ifdef __APPLE__
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	#endif
+
+	int windowWidth = 1280, windowHeight = 720;
 	bool showMenu = true;
 	bool showDemo = false;
 	char buf[128] = "roms/test.ch8";
 
-	// init SDL
-	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-		printf("[ERROR] %s\n", SDL_GetError());
+	// Create GLFW window context
+	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "LearnOpenGL", NULL, NULL);
+	if (window == NULL) {
+		std::cout << "Failed to create GLFW window" << std::endl;
+		glfwTerminate();
+		return -1;
+	}
+	glfwMakeContextCurrent(window);
+
+	// Initialize GLAD
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
 
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	std::string glsl_version = "";
-
-#ifdef __APPLE__
-	// GL 3.2 Core + GLSL 150
-	glsl_version = "#version 150";
-	SDL_GL_SetAttribute( // required on Mac OS
-		SDL_GL_CONTEXT_FLAGS,
-		SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG
-	);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-#elif __linux__
-	// GL 3.2 Core + GLSL 150
-	glsl_version = "#version 150";
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-#elif _WIN32
-	// GL 3.0 + GLSL 130
-	glsl_version = "#version 130";
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-#endif
-
-	SDL_WindowFlags window_flags = (SDL_WindowFlags)(
-		SDL_WINDOW_OPENGL
-		| SDL_WINDOW_RESIZABLE
-		| SDL_WINDOW_ALLOW_HIGHDPI
-		);
-	SDL_Window* window = SDL_CreateWindow(
-		"CHIP-8 Interpreter",
-		SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED,
-		windowWidth,
-		windowHeight,
-		window_flags
-	);
-	// limit to which minimum size user can resize the window
-	SDL_SetWindowMinimumSize(window, 64, 32);
-
-	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
-	SDL_GL_MakeCurrent(window, gl_context);
-
-	// enable VSync
-	SDL_GL_SetSwapInterval(1);
-
-	if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-		std::cerr << "[ERROR] Couldn't initialize glad" << std::endl;
-	} else {
-		std::cout << "[INFO] glad initialized\n";
-	}
+	// Set OGL Viewport
+	glViewport(0, 0, windowWidth, windowHeight);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	// setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -100,13 +75,18 @@ int main(int argc, char* argv[]) {
 	ImGui::StyleColorsDark();
 
 	// setup platform/renderer bindings
-	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-	ImGui_ImplOpenGL3_Init(glsl_version.c_str());
+	if (!ImGui_ImplOpenGL3_Init(glsl_version.c_str())) {
+		std::cout << "Failed to Init ImGui for OpenGL3!" << std::endl;
+		return -2;
+	}
+	if (!ImGui_ImplGlfw_InitForOpenGL(window, true)) {
+		std::cout << "Failed to Init ImGui GLFW for OpenGL!" << std::endl;
+		return -2;
+	}
+	#pragma endregion
 
 	// colors are set in RGBA, but as float
 	ImVec4 background = ImVec4(35 / 255.0f, 35 / 255.0f, 35 / 255.0f, 1.00f);
-
-	glClearColor(background.x, background.y, background.z, background.w);
 
 	Shader shaders("shaders/vertex.glsl", "shaders/fragment.glsl");
 
@@ -158,77 +138,49 @@ int main(int argc, char* argv[]) {
 	// Generate Texture ID context
 	glGenTextures(1, &rendTex);
 
+	// bind to nerly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, rendTex);
+
+	// Filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 	//Init Chip8 Sys
 	Chip8 chip8;
 	auto lastCycle = std::chrono::high_resolution_clock::now();
 
-	bool loop = true;
-	while (loop) {
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	// Render loop
+	while (!glfwWindowShouldClose(window)) {
+		// Input
+		processInput(window);
+
+		glClearColor(background.x, background.y, background.z, background.w);
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		if(chip8.isLoaded)
 			chip8.RunCycle();
 
-		SDL_Event event;
-		while (SDL_PollEvent(&event)) {
-			// without it you won't have keyboard input and other things
-			ImGui_ImplSDL2_ProcessEvent(&event);
-			// you might also want to check io.WantCaptureMouse and io.WantCaptureKeyboard
-			// before processing events
-
-			switch (event.type) {
-			case SDL_QUIT:
-				loop = false;
-				break;
-
-			case SDL_WINDOWEVENT:
-				switch (event.window.event) {
-				case SDL_WINDOWEVENT_RESIZED:
-					windowWidth = event.window.data1;
-					windowHeight = event.window.data2;
-					glViewport(0, 0, windowWidth, windowHeight);
-					break;
-				}
-				break;
-
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym) {
-				case SDLK_ESCAPE:
-					loop = false;
-					break;
-				case SDLK_INSERT:
-					showMenu = !showMenu;
-					break;
-				#ifdef _DEBUG
-				case SDLK_HOME:
-					showDemo = !showDemo;
-				#endif
-				}
-				
-				break;
-			}
-		}
-
 		// start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplSDL2_NewFrame(window);
+		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		if (showMenu) { // a window is defined by Begin/End pair
-			if (showDemo) {
+		if (true) { // a window is defined by Begin/End pair
+			if (false) {
 				ImGui::ShowDemoWindow();
 			}
 			// get the window size as a base for calculating widgets geometry
-			int sdl_width = 0, sdl_height = 0, controls_width = 0;
-			SDL_GetWindowSize(window, &sdl_width, &sdl_height);
-			controls_width = sdl_width;
+			int width = 0, height = 0, controls_width = 0;
+			glfwGetWindowSize(window, &width, &height);
+			controls_width = width;
 			// make controls widget width to be 1/3 of the main window width
 			if ((controls_width /= 3) < 300) { 
 				controls_width = 300; 
 			}
 			
-			{ // Control window
-				// position the controls widget in the top-right corner with some margin
+			{ 
 				ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 				// here we set the calculated width and also make the height to be
 				// be the height of the main window also with some margin
@@ -239,12 +191,6 @@ int main(int argc, char* argv[]) {
 				// create a window and append into it
 				ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
 
-				ImGui::Dummy(ImVec2(0.0f, 1.0f));
-				ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Platform"); ImGui::SameLine();
-				ImGui::Text("%s", SDL_GetPlatform());
-				ImGui::Text("CPU cores: %d", SDL_GetCPUCount());
-				ImGui::Text("RAM: %.2f GB", SDL_GetSystemRAM() / 1024.0f);
-
 				// buttons and most other widgets return true when clicked/edited/activated
 				ImGui::InputText("filename", buf, sizeof(buf), ImGuiInputTextFlags_CharsNoBlank);
 				if (ImGui::Button("Load ROM")) {
@@ -254,7 +200,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			if (chip8.isLoaded) {
-				ImGui::SetNextWindowPos(ImVec2(sdl_width - static_cast<float>(controls_width) - 5, 10), ImGuiCond_Always);
+				ImGui::SetNextWindowPos(ImVec2(width - static_cast<float>(controls_width) - 5, 10), ImGuiCond_Always);
 				ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), 450.0f), ImGuiCond_Always);
 				ImGui::Begin("CHIP-8 Debug Window", NULL, ImGuiWindowFlags_NoResize);
 
@@ -277,53 +223,42 @@ int main(int argc, char* argv[]) {
 			}
 
 			// Render chip8 video memory as pixels via OpenGL
-			if (chip8.shouldDraw) {
+			if (chip8.shouldDraw && chip8.video) {
 				chip8.shouldDraw = false;
 
-				// bind to nerly created texture : all future texture functions will modify this texture
-				glBindTexture(GL_TEXTURE_2D, rendTex);
-
-				// Filtering
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
 				// Assign pixel buffer to texture
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, chip8.video);
-
-				textureIsReady = true;
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, 
+					GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, chip8.video);
+				//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, chip8.video);
+				glGenerateMipmap(GL_TEXTURE_2D);
 			}
-		}
-
-		// Render our Texture
-		if (textureIsReady) {
-			glBindTexture(GL_TEXTURE_2D, rendTex);
-			// Use created shader for all future calls
-			shaders.use();
-			shaders.setVec4("clearColor", background.x, background.y, background.z, 1.0f);
-			glBindVertexArray(VAO);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			textureIsReady = false;
 		}
 
 		// Render ImGui
 		ImGui::Render();
 
+		glBindTexture(GL_TEXTURE_2D, rendTex);
+		// Use created shader for all future calls
+		shaders.use();
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 		// Render the window
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-		// Swap framebuffers
-		SDL_GL_SwapWindow(window);
+		// Swap buffers and poll IO events
+		glfwSwapBuffers(window);
+		glfwPollEvents();
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	SDL_GL_DeleteContext(gl_context);
-	SDL_DestroyWindow(window);
-	SDL_Quit();
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &EBO);
+	glDeleteBuffers(1, &VBO);
+	glfwTerminate();
 
 	return 0;
 }
