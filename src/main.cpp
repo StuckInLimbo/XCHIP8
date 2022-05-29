@@ -104,18 +104,13 @@ int main(int argc, char* argv[]) {
 	ImGui_ImplOpenGL3_Init(glsl_version.c_str());
 
 	// colors are set in RGBA, but as float
-	ImVec4 background = ImVec4(20 / 255.0f, 20 / 255.0f, 20 / 255.0f, 1.00f);
+	ImVec4 background = ImVec4(35 / 255.0f, 35 / 255.0f, 35 / 255.0f, 1.00f);
 
 	glClearColor(background.x, background.y, background.z, background.w);
 
-	GLuint gProgramID = 0;
-	GLint gVertexPos2DLocation = -1;
-	GLuint gVBO = 0;
-	GLuint gIBO = 0;
-
 	Shader shaders("shaders/vertex.glsl", "shaders/fragment.glsl");
 
-	// Vertex array in NDC
+	// Vertex array
 	float vertices[] = {
 		// positions          // colors           // texture coords
 		 1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
@@ -123,13 +118,13 @@ int main(int argc, char* argv[]) {
 		-1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
 		-1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
 	};
+
 	unsigned int indices[] = {
 		0, 1, 3, // first triangle
 		1, 2, 3  // second triangle
 	};
 
 	GLuint VBO, VAO, EBO;
-	
 	// Create OGL Objects
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -140,12 +135,12 @@ int main(int argc, char* argv[]) {
 	// Set VBO as the current buffer we are working with
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	// Copies the vertex data into the VBO's memory
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
 	// Set EBO as the current buffer we are working with
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	// Copies the index data into the EBO's memory
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 
 	// Set vertex attribute pointers
 	// position attribute
@@ -232,7 +227,7 @@ int main(int argc, char* argv[]) {
 				controls_width = 300; 
 			}
 			
-			{
+			{ // Control window
 				// position the controls widget in the top-right corner with some margin
 				ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 				// here we set the calculated width and also make the height to be
@@ -306,6 +301,7 @@ int main(int argc, char* argv[]) {
 			glBindTexture(GL_TEXTURE_2D, rendTex);
 			// Use created shader for all future calls
 			shaders.use();
+			shaders.setVec4("clearColor", background.x, background.y, background.z, 1.0f);
 			glBindVertexArray(VAO);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			textureIsReady = false;
