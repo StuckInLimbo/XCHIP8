@@ -5,9 +5,10 @@
 #include <iostream>
 #include <chrono>
 
-// SDL
+// OpenGL
 #include <glad/glad.h>
 #include <SDL.h>
+#include "shader.h"
 
 // ImGui
 #include "imgui/imgui_impl_sdl.h"
@@ -16,6 +17,8 @@
 
 // Program
 #include "chip8.h"
+
+bool textureIsReady = false;
 
 int main(int argc, char* argv[]) {
 	int windowWidth = 960, windowHeight = 480;
@@ -93,7 +96,6 @@ int main(int argc, char* argv[]) {
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.Fonts->AddFontFromMemoryCompressedTTF(OpenSans_compressed_data, OpenSans_compressed_size, 18.0f, NULL, NULL);
 
-
 	// setup Dear ImGui style
 	ImGui::StyleColorsDark();
 
@@ -102,9 +104,64 @@ int main(int argc, char* argv[]) {
 	ImGui_ImplOpenGL3_Init(glsl_version.c_str());
 
 	// colors are set in RGBA, but as float
-	ImVec4 background = ImVec4(80 / 255.0f, 80 / 255.0f, 80 / 255.0f, 1.00f);
+	ImVec4 background = ImVec4(20 / 255.0f, 20 / 255.0f, 20 / 255.0f, 1.00f);
 
 	glClearColor(background.x, background.y, background.z, background.w);
+
+	GLuint gProgramID = 0;
+	GLint gVertexPos2DLocation = -1;
+	GLuint gVBO = 0;
+	GLuint gIBO = 0;
+
+	Shader shaders("shaders/vertex.glsl", "shaders/fragment.glsl");
+
+	// Vertex array in NDC
+	float vertices[] = {
+		// positions          // colors           // texture coords
+		 1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+		 1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+		-1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+		-1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+	};
+	unsigned int indices[] = {
+		0, 1, 3, // first triangle
+		1, 2, 3  // second triangle
+	};
+
+	GLuint VBO, VAO, EBO;
+	
+	// Create OGL Objects
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	// Bind to Vertex Array Object
+	glBindVertexArray(VAO);
+	// Set VBO as the current buffer we are working with
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	// Copies the vertex data into the VBO's memory
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	// Set EBO as the current buffer we are working with
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	// Copies the index data into the EBO's memory
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Set vertex attribute pointers
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	// texture attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	// Create texture object
+	GLuint rendTex;
+	// Generate Texture ID context
+	glGenTextures(1, &rendTex);
 
 	//Init Chip8 Sys
 	Chip8 chip8;
@@ -171,15 +228,17 @@ int main(int argc, char* argv[]) {
 			SDL_GetWindowSize(window, &sdl_width, &sdl_height);
 			controls_width = sdl_width;
 			// make controls widget width to be 1/3 of the main window width
-			if ((controls_width /= 3) < 300) { controls_width = 300; }
-
+			if ((controls_width /= 3) < 300) { 
+				controls_width = 300; 
+			}
+			
 			{
 				// position the controls widget in the top-right corner with some margin
 				ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 				// here we set the calculated width and also make the height to be
 				// be the height of the main window also with some margin
 				ImGui::SetNextWindowSize(
-					ImVec2(static_cast<float>(controls_width), 165),
+					ImVec2(300, 165),
 					ImGuiCond_Always
 				);
 				// create a window and append into it
@@ -200,8 +259,8 @@ int main(int argc, char* argv[]) {
 			}
 
 			if (chip8.isLoaded) {
-				ImGui::SetNextWindowPos(ImVec2(static_cast<float>(controls_width) + 20, 10), ImGuiCond_Always);
-				ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), static_cast<float>(sdl_height - 20)), ImGuiCond_Always);
+				ImGui::SetNextWindowPos(ImVec2(sdl_width - static_cast<float>(controls_width) - 5, 10), ImGuiCond_Always);
+				ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), 450.0f), ImGuiCond_Always);
 				ImGui::Begin("CHIP-8 Debug Window", NULL, ImGuiWindowFlags_NoResize);
 
 				ImGui::BeginChild("DebugL", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoScrollWithMouse);
@@ -221,40 +280,39 @@ int main(int argc, char* argv[]) {
 				ImGui::EndChild();
 				ImGui::End();
 			}
+
+			// Render chip8 video memory as pixels via OpenGL
+			if (chip8.shouldDraw) {
+				chip8.shouldDraw = false;
+
+				// bind to nerly created texture : all future texture functions will modify this texture
+				glBindTexture(GL_TEXTURE_2D, rendTex);
+
+				// Filtering
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+				// Assign pixel buffer to texture
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, chip8.video);
+
+				textureIsReady = true;
+			}
 		}
 
+		// Render our Texture
+		if (textureIsReady) {
+			glBindTexture(GL_TEXTURE_2D, rendTex);
+			// Use created shader for all future calls
+			shaders.use();
+			glBindVertexArray(VAO);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			textureIsReady = false;
+		}
 
 		// Render ImGui
 		ImGui::Render();
-
-		// Render chip8 video memory as pixels via OpenGL
-		if (chip8.shouldDraw) {
-
-			chip8.shouldDraw = false;
-
-			glEnable(GL_TEXTURE_2D);
-
-			//glViewport(0, 0, windowWidth, windowHeight);
-			//glClearColor(background.x, background.y, background.z, background.w);
-
-			// Generate OGL Texture ID ctx
-			GLuint rendTex;
-			glGenTextures(1, &rendTex);
-			// bind to nerly created texture : all future texture functions will modify this texture
-			glBindTexture(GL_TEXTURE_2D, rendTex);
-
-			// Filtering
-			/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);*/
-
-			// Assign pixel buffer to texture
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, chip8.video);
-			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-			glDisable(GL_TEXTURE_2D);
-		}
 
 		// Render the window
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

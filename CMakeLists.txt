@@ -35,6 +35,7 @@ set(sources
     src/main.cpp
     src/chip8.cpp
     src/chip8.h
+    src/shader.h
     src/imgui/imconfig.h
     src/imgui/imgui.cpp
     src/imgui/imgui.h
@@ -55,8 +56,10 @@ set(sources
 
 # Add source to this project's executable.
 if (WIN32)
+    message(STATUS ">>> WIN32")
     add_executable (XCHIP8 WIN32 ${sources})
 else()
+    message(STATUS ">>> NOT WIN32")
     add_executable (XCHIP8 ${sources})
 endif()
 
@@ -72,7 +75,13 @@ endif()
 
 # Post build cmds
 add_custom_command(TARGET XCHIP8 POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory 
-                   ${CMAKE_SOURCE_DIR}/roms/ 
-                   $<TARGET_FILE_DIR:XCHIP8>/roms/
+    COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    ${CMAKE_SOURCE_DIR}/roms/ 
+    $<TARGET_FILE_DIR:XCHIP8>/roms/
+)
+
+add_custom_command(TARGET XCHIP8 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    ${CMAKE_SOURCE_DIR}/src/shaders/ 
+    $<TARGET_FILE_DIR:XCHIP8>/shaders/
 )
