@@ -22,6 +22,7 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/src/glfw/")
+include_directories("${CMAKE_SOURCE_DIR}/src/glfw/include")
 
 set(sources
     src/main.cpp
