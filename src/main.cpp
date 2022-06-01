@@ -29,14 +29,13 @@ void processInput(GLFWwindow* window) {
 		glfwSetWindowShouldClose(window, true);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 	#pragma region Initialization
 	// Initialize GLFW, and set version + profile
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	std::string glsl_version = "#version 130";
 	#ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	#endif
@@ -53,6 +52,8 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
+	else
+		std::cout << "GLFW sucessfully initialized!" << std::endl;
 	glfwMakeContextCurrent(window);
 
 	// Initialize GLAD
@@ -60,6 +61,11 @@ int main() {
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
+	else
+		std::cout << "GLAD sucessfully initialized!" << std::endl;
+
+	std::string glsl_version = "#version 330";
+	//std::string glsl_version = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 
 	// Set OGL Viewport
 	glViewport(0, 0, windowWidth, windowHeight);
@@ -88,15 +94,13 @@ int main() {
 	// colors are set in RGBA, but as float
 	ImVec4 background = ImVec4(35 / 255.0f, 35 / 255.0f, 35 / 255.0f, 1.00f);
 
-	Shader shaders("shaders/vertex.glsl", "shaders/fragment.glsl");
-
 	// Vertex array
 	float vertices[] = {
 		// positions          // colors           // texture coords
-		 1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-		 1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-		-1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-		-1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+		 0.3f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, // top right
+		 0.3f, -1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f, // bottom right
+		-1.0f, -1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f, // bottom left
+		-1.0f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f  // top left 
 	};
 
 	unsigned int indices[] = {
@@ -138,18 +142,11 @@ int main() {
 	// Generate Texture ID context
 	glGenTextures(1, &rendTex);
 
-	// bind to nerly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, rendTex);
-
-	// Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
 	//Init Chip8 Sys
 	Chip8 chip8;
 	auto lastCycle = std::chrono::high_resolution_clock::now();
+
+	Shader shaders("shaders/vertex.glsl", "shaders/fragment.glsl");
 
 	// Render loop
 	while (!glfwWindowShouldClose(window)) {
@@ -201,20 +198,21 @@ int main() {
 
 			if (chip8.isLoaded) {
 				ImGui::SetNextWindowPos(ImVec2(width - static_cast<float>(controls_width) - 5, 10), ImGuiCond_Always);
-				ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), 450.0f), ImGuiCond_Always);
+				ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), 500.0f), ImGuiCond_Always);
 				ImGui::Begin("CHIP-8 Debug Window", NULL, ImGuiWindowFlags_NoResize);
 
 				ImGui::BeginChild("DebugL", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoScrollWithMouse);
 				ImGui::Text("opcode: %x", chip8.opcode);
 				ImGui::Text("PC: %hu", chip8.pc);
-				//ImGui::SameLine(); ImGui::Text("SP: %hu", chip8.sp);
+				ImGui::Text("I: %hu", chip8.I);
 				for (int i = 0; i < 16; i++) {
 					ImGui::Text("V[%0i]: %x", i, chip8.V[0]);
 				}
 				ImGui::EndChild(); ImGui::SameLine();
 
 				ImGui::BeginChild("DebugR", ImVec2(ImGui::GetContentRegionAvail().x - 30, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoResize);
-				ImGui::Text("I: %hu", chip8.I);
+				
+				ImGui::Text("SP: %hu", chip8.sp);
 				for (int i = 0; i < 16; i++) {
 					ImGui::Text("S[%i]: %x", i, chip8.stack[i]);
 				}
@@ -223,14 +221,29 @@ int main() {
 			}
 
 			// Render chip8 video memory as pixels via OpenGL
-			if (chip8.shouldDraw && chip8.video) {
+			if (chip8.shouldDraw) {
 				chip8.shouldDraw = false;
 
+				uint32_t pixels[2048];
+
+				for (int i = 0; i < 2048; i++) {
+					pixels[i] = (chip8.video[i] & 0xFFFFFF00) | 0xFF;
+				}
+
+				// bind to nerly created texture : all future texture functions will modify this texture
+				glBindTexture(GL_TEXTURE_2D, rendTex);
+
+				// Filtering
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 				// Assign pixel buffer to texture
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, 
-					GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, chip8.video);
-				//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, chip8.video);
+				//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, chip8.video);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 32, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT_8_8_8_8, pixels);
 				glGenerateMipmap(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 		}
 
@@ -241,6 +254,8 @@ int main() {
 		// Use created shader for all future calls
 		shaders.use();
 		glBindVertexArray(VAO);
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //Wireframe mode
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		// Render the window
