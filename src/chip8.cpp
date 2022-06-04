@@ -2,6 +2,10 @@
 #include <chrono>
 // For file loading
 #include <fstream>
+// For ImGui Menus
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/imgui_impl_glfw.h"
+#include <GLFW/glfw3.h>
 
 // Fixed font address at $50
 const unsigned int FONTSET_START_ADDRESS = 0x50;
@@ -160,6 +164,80 @@ void Chip8::RunCycle() {
 		--soundTimer;
 	}
 }
+
+void Chip8::RunMenu(float screenWidth, float screenHeight) {
+	if (showMenu) { // a window is defined by Begin/End pair
+		float controls_width = screenWidth;
+		// make controls widget width to be 1/3 of the main window width
+		if ((controls_width /= 3) < 300) {
+			controls_width = 300;
+		}
+
+		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
+		// here we set the calculated width and also make the height to be
+		// be the height of the main window also with some margin
+		ImGui::SetNextWindowSize(ImVec2(300, 165), ImGuiCond_Once);
+		// create a window and append into it
+		ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
+
+		// buttons and most other widgets return true when clicked/edited/activated
+		ImGui::Text("(%.1f FPS)", ImGui::GetIO().Framerate);
+		ImGui::InputText("filename", buf, sizeof(buf), ImGuiInputTextFlags_CharsNoBlank);
+		if (ImGui::Button("Load ROM")) {
+			LoadRom((const char*)buf);
+		}
+		ImGui::End();
+
+		if (isLoaded) {
+			// Debug Window
+			ImGui::SetNextWindowPos(ImVec2(screenWidth - static_cast<float>(controls_width) - 5, 10), ImGuiCond_Once);
+			ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), 500.0f), ImGuiCond_Once);
+			ImGui::Begin("CHIP-8 Debug Window", NULL, ImGuiWindowFlags_NoResize);
+
+			ImGui::BeginChild("DebugL", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoScrollWithMouse);
+			ImGui::Text("opcode: %x", opcode);
+			ImGui::Text("PC: %hu", pc);
+			ImGui::Text("I: %hu", I);
+			for (int i = 0; i < 16; i++) {
+				ImGui::Text("V[%0i]: %x", i, V[0]);
+			}
+			ImGui::EndChild(); ImGui::SameLine();
+
+			ImGui::BeginChild("DebugR", ImVec2(ImGui::GetContentRegionAvail().x - 30, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoResize);
+
+			ImGui::Text("SP: %hu", sp);
+			ImGui::Text("%s", "Stack");
+			for (int i = 0; i < 16; i++) {
+				ImGui::Text("S[%i]: %x", i, stack[i]);
+			}
+			ImGui::EndChild();
+			ImGui::End();
+
+			// RAM Contents Window
+
+
+			// Game Window
+			ImGui::SetNextWindowSize(ImVec2((64 * 10), (32 * 10)), ImGuiCond_Once);
+			ImGui::SetNextWindowPos(ImVec2(5, screenHeight - 5 - (32 * 10)), ImGuiCond_Always);
+			ImGui::Begin("CHIP-8 Viewer", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+			// Render chip8 video memory as pixels via OpenGL
+			if (shouldDraw) {
+				shouldDraw = false;
+
+				uint32_t pixels[2048];
+
+				for (int i = 0; i < 2048; i++) {
+					pixels[i] = (video[i] & 0xFFFFFF00) | 0xFF;
+				}
+				//do something with current imgui window
+			}
+			ImGui::End();
+		}
+
+		
+	}
+}
+
 
 void Chip8::Table0() {
 	((*this).*(table0[opcode & 0x000Fu]))();

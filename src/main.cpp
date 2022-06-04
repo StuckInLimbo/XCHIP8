@@ -17,7 +17,6 @@
 
 // Program
 #include "chip8.h"
-#include "menu.h"
 
 // \brief Callback for GLFW to resize the viewport whenever the window is resized
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -117,7 +116,8 @@ int main(int argc, char* argv[]) {
 		// get the window size as a base for calculating widgets geometry
 		
 		glfwGetWindowSize(window, &width, &height);
-		Menu::runMenus(&chip8, width, height);
+		//Menu::runMenus(&chip8, width, height);
+		chip8.RunMenu(width, height);
 
 		// Render ImGui
 		ImGui::Render();

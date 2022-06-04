@@ -18,6 +18,7 @@ public:
 
 	// Interpreter
 	void RunCycle();
+	void RunMenu(float screenWidth, float screenHeight);
 
 	// Reset
 	void Reset();
@@ -53,6 +54,9 @@ private:
 	void Table8();
 	void TableE();
 	void TableF();
+
+	void Debugger();
+	void Interpreter();
 
 #pragma region Opcodes
 	// NOP
@@ -128,6 +132,10 @@ private:
 	// LD Vx, [I]
 	void OP_Fx65();
 #pragma endregion
+
+	bool showMenu = true;
+	bool showDemo = false;
+	char buf[128] = "roms/test.ch8";
 
 	// RNG member vars
 	std::default_random_engine randGen;
