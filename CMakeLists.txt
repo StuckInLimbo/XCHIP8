@@ -28,7 +28,6 @@ set(sources
     src/main.cpp
     src/chip8.cpp
     src/chip8.h
-    src/shader.h
     src/imgui/imconfig.h
     src/imgui/imgui.cpp
     src/imgui/imgui.h
@@ -44,7 +43,9 @@ set(sources
     src/imgui/imgui_impl_opengl3.h
     src/imgui/imgui_impl_glfw.cpp
     src/imgui/imgui_impl_glfw.h
-    src/imgui/opensans.h
+    src/imgui/imgui_memory_editor.h
+    src/imgui/fonts/OpenSans.h
+    src/imgui/fonts/RobotoMono.h
 )
 
 # Add source to this project's executable.
@@ -73,8 +74,8 @@ add_custom_command(TARGET XCHIP8 POST_BUILD
     $<TARGET_FILE_DIR:XCHIP8>/roms/
 )
 
-add_custom_command(TARGET XCHIP8 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory 
-    ${CMAKE_SOURCE_DIR}/src/shaders/ 
-    $<TARGET_FILE_DIR:XCHIP8>/shaders/
-)
+#add_custom_command(TARGET XCHIP8 POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E copy_directory 
+#    ${CMAKE_SOURCE_DIR}/src/shaders/ 
+#    $<TARGET_FILE_DIR:XCHIP8>/shaders/
+#)

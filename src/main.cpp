@@ -8,12 +8,10 @@
 // OpenGL
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "shader.h"
 
 // ImGui
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_glfw.h"
-#include "imgui/opensans.h"
 
 // Program
 #include "chip8.h"
@@ -43,7 +41,7 @@ int main(int argc, char* argv[]) {
 	int windowWidth = 1280, windowHeight = 720;
 
 	// Create GLFW window context
-	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "LearnOpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "XCHIP8", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -67,15 +65,12 @@ int main(int argc, char* argv[]) {
 	// Set OGL Viewport
 	glViewport(0, 0, windowWidth, windowHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSwapInterval(1);
-	//glfwMaximizeWindow(window);
+	glfwSwapInterval(0);
+	glfwMaximizeWindow(window);
 
 	// setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.Fonts->AddFontFromMemoryCompressedTTF(OpenSans_compressed_data, OpenSans_compressed_size, 18.0f, NULL, NULL);
-
 	// setup Dear ImGui style
 	ImGui::StyleColorsDark();
 
@@ -97,13 +92,11 @@ int main(int argc, char* argv[]) {
 	Chip8 chip8;
 	auto lastCycle = std::chrono::high_resolution_clock::now();
 	int width = 0, height = 0, controls_width = 0;
+
 	// Render loop
 	while (!glfwWindowShouldClose(window)) {
 		// Input
 		processInput(window);
-
-		glClearColor(background.x, background.y, background.z, background.w);
-		glClear(GL_COLOR_BUFFER_BIT);
 
 		if(chip8.isLoaded)
 			chip8.RunCycle();
@@ -113,16 +106,18 @@ int main(int argc, char* argv[]) {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		
-		// get the window size as a base for calculating widgets geometry
-		
+		glClearColor(background.x, background.y, background.z, background.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// get the window size as a base for calculating widgets geometry		
 		glfwGetWindowSize(window, &width, &height);
-		//Menu::runMenus(&chip8, width, height);
 		chip8.RunMenu(width, height);
 
 		// Render ImGui
 		ImGui::Render();
 		// Render the window
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 		// Swap buffers and poll IO events
 		glfwSwapBuffers(window);
 		glfwPollEvents();

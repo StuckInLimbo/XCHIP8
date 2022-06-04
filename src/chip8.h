@@ -2,13 +2,15 @@
 
 #include <cstdint>
 #include <random>
+#include <GLFW/glfw3.h>
+#include "imgui/imgui_memory_editor.h"
 
 const unsigned int KEY_COUNT = 16;
 const unsigned int MEMORY_SIZE = 4096;
 const unsigned int REGISTER_COUNT = 16;
 const unsigned int STACK_LEVELS = 16;
-const unsigned int VIDEO_HEIGHT = 32;
-const unsigned int VIDEO_WIDTH = 64;
+const int VIDEO_HEIGHT = 32;
+const int VIDEO_WIDTH = 64;
 
 class Chip8 {
 public:
@@ -25,6 +27,8 @@ public:
 
 	// Graphics
 	uint32_t video[VIDEO_WIDTH * VIDEO_HEIGHT];
+	int VIDEO_SCALE = 1;
+	bool vSync = true;
 
 	// Input
 	uint8_t keypad[KEY_COUNT];
@@ -136,6 +140,12 @@ private:
 	bool showMenu = true;
 	bool showDemo = false;
 	char buf[128] = "roms/test.ch8";
+	//static MemoryEditor memviewer;
+	MemoryEditor ram;
+	MemoryEditor vram;
+	ImFont* RobotoMono = nullptr;
+	ImFont* OpenSans = nullptr;
+	GLuint TEX;
 
 	// RNG member vars
 	std::default_random_engine randGen;

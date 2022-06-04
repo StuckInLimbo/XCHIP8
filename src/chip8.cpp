@@ -6,6 +6,8 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_glfw.h"
 #include <GLFW/glfw3.h>
+#include "imgui/fonts/OpenSans.h"
+#include "imgui/fonts/RobotoMono.h"
 
 // Fixed font address at $50
 const unsigned int FONTSET_START_ADDRESS = 0x50;
@@ -48,6 +50,7 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 	sp = 0;
 	delayTimer = 0;
 	soundTimer = 0;
+	VIDEO_SCALE = 15;
 
 	// Initialize RNG
 	randByte = std::uniform_int_distribution<uint16_t>(0, 255U);
@@ -103,6 +106,20 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 	tableF[0x33] = &Chip8::OP_Fx33;
 	tableF[0x55] = &Chip8::OP_Fx55;
 	tableF[0x65] = &Chip8::OP_Fx65;
+
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	OpenSans = io.Fonts->AddFontFromMemoryCompressedTTF(OpenSans_data, OpenSans_size, 18.0f, NULL, NULL);
+	RobotoMono = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMono_data, RobotoMono_size, 18.0f, NULL, NULL);
+
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+	glGenTextures(1, &TEX);
+	glBindTexture(GL_TEXTURE_2D, TEX);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void Chip8::Reset() {
@@ -166,75 +183,79 @@ void Chip8::RunCycle() {
 }
 
 void Chip8::RunMenu(float screenWidth, float screenHeight) {
-	if (showMenu) { // a window is defined by Begin/End pair
-		float controls_width = screenWidth;
-		// make controls widget width to be 1/3 of the main window width
-		if ((controls_width /= 3) < 300) {
-			controls_width = 300;
-		}
-
-		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
-		// here we set the calculated width and also make the height to be
-		// be the height of the main window also with some margin
-		ImGui::SetNextWindowSize(ImVec2(300, 165), ImGuiCond_Once);
-		// create a window and append into it
-		ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
-
+	if (showMenu) {
+		ImGui::SetNextWindowPos(ImVec2(5, 5));
+		ImGui::Begin("Menu", NULL);
+		ImGui::SetWindowSize(ImVec2(300, 150));
 		// buttons and most other widgets return true when clicked/edited/activated
-		ImGui::Text("(%.1f FPS)", ImGui::GetIO().Framerate);
+		ImGui::Checkbox("v-sync", &vSync); ImGui::SameLine();
+		if(!vSync)
+			glfwSwapInterval(0);
+		else {
+			glfwSwapInterval(1);
+		}
+		ImGui::Text("(%.1f FPS)", ImGui::GetIO().Framerate); 
 		ImGui::InputText("filename", buf, sizeof(buf), ImGuiInputTextFlags_CharsNoBlank);
 		if (ImGui::Button("Load ROM")) {
 			LoadRom((const char*)buf);
 		}
+		ImGui::SliderInt("Video Scale", &VIDEO_SCALE, 1, 20, "%i");
 		ImGui::End();
 
-		if (isLoaded) {
-			// Debug Window
-			ImGui::SetNextWindowPos(ImVec2(screenWidth - static_cast<float>(controls_width) - 5, 10), ImGuiCond_Once);
-			ImGui::SetNextWindowSize(ImVec2(static_cast<float>(controls_width), 500.0f), ImGuiCond_Once);
-			ImGui::Begin("CHIP-8 Debug Window", NULL, ImGuiWindowFlags_NoResize);
-
-			ImGui::BeginChild("DebugL", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoScrollWithMouse);
-			ImGui::Text("opcode: %x", opcode);
-			ImGui::Text("PC: %hu", pc);
-			ImGui::Text("I: %hu", I);
-			for (int i = 0; i < 16; i++) {
-				ImGui::Text("V[%0i]: %x", i, V[0]);
-			}
-			ImGui::EndChild(); ImGui::SameLine();
-
-			ImGui::BeginChild("DebugR", ImVec2(ImGui::GetContentRegionAvail().x - 30, ImGui::GetContentRegionAvail().y), false, ImGuiWindowFlags_NoResize);
-
-			ImGui::Text("SP: %hu", sp);
-			ImGui::Text("%s", "Stack");
-			for (int i = 0; i < 16; i++) {
-				ImGui::Text("S[%i]: %x", i, stack[i]);
-			}
-			ImGui::EndChild();
-			ImGui::End();
-
-			// RAM Contents Window
-
-
-			// Game Window
-			ImGui::SetNextWindowSize(ImVec2((64 * 10), (32 * 10)), ImGuiCond_Once);
-			ImGui::SetNextWindowPos(ImVec2(5, screenHeight - 5 - (32 * 10)), ImGuiCond_Always);
-			ImGui::Begin("CHIP-8 Viewer", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-			// Render chip8 video memory as pixels via OpenGL
-			if (shouldDraw) {
-				shouldDraw = false;
-
-				uint32_t pixels[2048];
-
-				for (int i = 0; i < 2048; i++) {
-					pixels[i] = (video[i] & 0xFFFFFF00) | 0xFF;
-				}
-				//do something with current imgui window
-			}
-			ImGui::End();
+		ImGui::Begin("Debugger", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+		ImGui::SetWindowSize(ImVec2(200.0f, 450.0f));
+		ImGui::BeginChild("DebugL", ImVec2(100, 445), false);
+		ImGui::Text("opcode: %x", opcode);
+		ImGui::Text("PC: %hu", pc);
+		ImGui::Text("I: %hu", I);
+		for (int i = 0; i < 16; i++) {
+			ImGui::Text("V[%0i]: %x", i, V[0]);
 		}
+		ImGui::EndChild(); ImGui::SameLine(); //DebugL
 
-		
+		ImGui::BeginChild("DebugR", ImVec2(100, 445), false);
+		ImGui::Text("SP: %hu", sp);
+		//ImGui::Text("%s", "Stack");
+		for (int i = 0; i < 16; i++) {
+			ImGui::Text("S[%i]: %x", i, stack[i]);
+		}
+		ImGui::EndChild(); ImGui::SameLine(); // DebugR
+
+		ImGui::End(); ImGui::SameLine();
+
+		// RAM Contents Window
+		ImGui::PushFont(RobotoMono);
+		ImGui::Begin("RAM");
+		ImGui::SetWindowSize(ImVec2(400.0f, 500.0f));
+		ram.Cols = 8;
+		ram.OptShowAscii = false;
+		ram.ReadOnly = true;
+		ram.DrawContents(&memory, sizeof(memory), size_t(memory));
+		ImGui::End();
+
+		// VRAM Contents Window
+		ImGui::Begin("VRAM");
+		ImGui::SetWindowSize(ImVec2(400.0f, 500.0f));
+		vram.Cols = 8;
+		vram.OptShowAscii = false;
+		vram.ReadOnly = true;
+		vram.DrawContents((void*)video, sizeof(video), size_t(video));
+		ImGui::End();
+		ImGui::PopFont();
+
+		// Game Window
+		ImGui::SetNextWindowPos(ImVec2(5, 600));
+		ImGui::Begin("Interpreter", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
+		ImGui::SetWindowSize(ImVec2((VIDEO_WIDTH * VIDEO_SCALE) + 20,
+			(VIDEO_HEIGHT * VIDEO_SCALE) + 20));
+		glBindTexture(GL_TEXTURE_2D, TEX);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, video);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		//do something with current imgui window
+		ImGui::Image(reinterpret_cast<ImTextureID>(TEX), ImVec2(VIDEO_WIDTH * VIDEO_SCALE,
+			VIDEO_HEIGHT * VIDEO_SCALE));
+		ImGui::End();
 	}
 }
 
@@ -257,7 +278,7 @@ void Chip8::TableF() {
 
 // NO OPERATION
 void Chip8::OP_NULL() {
-	
+
 }
 
 // Clear screen
