@@ -29,6 +29,8 @@ set(sources
     src/chip8.cpp
     src/chip8.h
     src/shader.h
+    src/menu.cpp
+    src/menu.h
     src/imgui/imconfig.h
     src/imgui/imgui.cpp
     src/imgui/imgui.h
