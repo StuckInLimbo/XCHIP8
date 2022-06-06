@@ -73,9 +73,3 @@ add_custom_command(TARGET XCHIP8 POST_BUILD
     ${CMAKE_SOURCE_DIR}/roms/ 
     $<TARGET_FILE_DIR:XCHIP8>/roms/
 )
-
-#add_custom_command(TARGET XCHIP8 POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy_directory 
-#    ${CMAKE_SOURCE_DIR}/src/shaders/ 
-#    $<TARGET_FILE_DIR:XCHIP8>/shaders/
-#)
