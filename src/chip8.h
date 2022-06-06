@@ -27,7 +27,7 @@ public:
 
 	// Graphics
 	uint32_t video[VIDEO_WIDTH * VIDEO_HEIGHT];
-	int VIDEO_SCALE = 1;
+	int VIDEO_SCALE = 10;
 	bool vSync = true;
 
 	// Input
@@ -47,6 +47,7 @@ public:
 	// Timers
 	uint8_t delayTimer;
 	uint8_t soundTimer;
+	uint8_t cycleDelay;
 
 	// Booleans
 	bool isLoaded = false;
@@ -142,7 +143,6 @@ private:
 	char buf[128] = "roms/test.ch8";
 	//static MemoryEditor memviewer;
 	MemoryEditor ram;
-	MemoryEditor vram;
 	ImFont* RobotoMono = nullptr;
 	ImFont* OpenSans = nullptr;
 	GLuint TEX;

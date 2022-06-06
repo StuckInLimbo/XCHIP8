@@ -1,4 +1,5 @@
 #include "chip8.h"
+#include <iostream>
 #include <chrono>
 // For file loading
 #include <fstream>
@@ -50,6 +51,7 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 	sp = 0;
 	delayTimer = 0;
 	soundTimer = 0;
+	cycleDelay = 875;
 	VIDEO_SCALE = 15;
 
 	// Initialize RNG
@@ -112,7 +114,7 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 	RobotoMono = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMono_data, RobotoMono_size, 18.0f, NULL, NULL);
 
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // beta flags, not in master
 	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 	glGenTextures(1, &TEX);
@@ -136,6 +138,7 @@ void Chip8::Reset() {
 	sp = 0;
 	delayTimer = 0;
 	soundTimer = 0;
+	cycleDelay = 875;
 
 	// Initialize RNG
 	randByte = std::uniform_int_distribution<uint16_t>(0, 255U);
@@ -184,9 +187,24 @@ void Chip8::RunCycle() {
 
 void Chip8::RunMenu(float screenWidth, float screenHeight) {
 	if (showMenu) {
+		// Game Window
+		ImGui::SetNextWindowPos(ImVec2(305, 5));
+		ImGui::Begin("Interpreter", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		glBindTexture(GL_TEXTURE_2D, TEX);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 32, 0, GL_RGBA,
+			GL_UNSIGNED_BYTE, video);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		int gameW = (VIDEO_WIDTH * VIDEO_SCALE);
+		int gameH = (VIDEO_HEIGHT * VIDEO_SCALE);
+		ImGui::Image(reinterpret_cast<ImTextureID>(TEX), ImVec2(gameW, gameH));
+		gameW = ImGui::GetWindowSize().x;
+		gameH = ImGui::GetWindowSize().y;
+		ImGui::End();
+
 		ImGui::SetNextWindowPos(ImVec2(5, 5));
-		ImGui::Begin("Menu", NULL);
-		ImGui::SetWindowSize(ImVec2(300, 150));
+		ImGui::SetNextWindowSize(ImVec2(300, 160));
+		ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
 		// buttons and most other widgets return true when clicked/edited/activated
 		ImGui::Checkbox("v-sync", &vSync); ImGui::SameLine();
 		if(!vSync)
@@ -199,12 +217,12 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 		if (ImGui::Button("Load ROM")) {
 			LoadRom((const char*)buf);
 		}
-		ImGui::SliderInt("Video Scale", &VIDEO_SCALE, 1, 20, "%i");
+		ImGui::SliderInt("Video Scale", &VIDEO_SCALE, 1, 30, "%i");
 		ImGui::End();
 
-		ImGui::Begin("Debugger", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-		ImGui::SetWindowSize(ImVec2(200.0f, 450.0f));
-		ImGui::BeginChild("DebugL", ImVec2(100, 445), false);
+		ImGui::SetNextWindowPos(ImVec2(5, 165));
+		ImGui::Begin("Debugger", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+		ImGui::BeginChild("DebugL", ImVec2(125, 425), false);
 		ImGui::Text("opcode: %x", opcode);
 		ImGui::Text("PC: %hu", pc);
 		ImGui::Text("I: %hu", I);
@@ -213,7 +231,7 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 		}
 		ImGui::EndChild(); ImGui::SameLine(); //DebugL
 
-		ImGui::BeginChild("DebugR", ImVec2(100, 445), false);
+		ImGui::BeginChild("DebugR", ImVec2(125, 400), false);
 		ImGui::Text("SP: %hu", sp);
 		//ImGui::Text("%s", "Stack");
 		for (int i = 0; i < 16; i++) {
@@ -225,37 +243,14 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 
 		// RAM Contents Window
 		ImGui::PushFont(RobotoMono);
-		ImGui::Begin("RAM");
-		ImGui::SetWindowSize(ImVec2(400.0f, 500.0f));
-		ram.Cols = 8;
-		ram.OptShowAscii = false;
-		ram.ReadOnly = true;
-		ram.DrawContents(&memory, sizeof(memory), size_t(memory));
-		ImGui::End();
-
-		// VRAM Contents Window
-		ImGui::Begin("VRAM");
-		ImGui::SetWindowSize(ImVec2(400.0f, 500.0f));
-		vram.Cols = 8;
-		vram.OptShowAscii = false;
-		vram.ReadOnly = true;
-		vram.DrawContents((void*)video, sizeof(video), size_t(video));
+		//ImGui::SetNextWindowSize(ImVec2(900.0f, 600.0f));
+		ImGui::SetNextWindowPos(ImVec2(305, gameH + 5));
+		ImGui::Begin("RAM", NULL);
+		ram.Cols = 16;
+		ram.OptShowAscii = true;
+		ram.DrawContents(&memory, sizeof(memory), 0x0);
 		ImGui::End();
 		ImGui::PopFont();
-
-		// Game Window
-		ImGui::SetNextWindowPos(ImVec2(5, 600));
-		ImGui::Begin("Interpreter", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
-		ImGui::SetWindowSize(ImVec2((VIDEO_WIDTH * VIDEO_SCALE) + 20,
-			(VIDEO_HEIGHT * VIDEO_SCALE) + 20));
-		glBindTexture(GL_TEXTURE_2D, TEX);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, video);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		//do something with current imgui window
-		ImGui::Image(reinterpret_cast<ImTextureID>(TEX), ImVec2(VIDEO_WIDTH * VIDEO_SCALE,
-			VIDEO_HEIGHT * VIDEO_SCALE));
-		ImGui::End();
 	}
 }
 

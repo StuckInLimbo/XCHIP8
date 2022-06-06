@@ -97,10 +97,15 @@ int main(int argc, char* argv[]) {
 	while (!glfwWindowShouldClose(window)) {
 		// Input
 		processInput(window);
+		auto currTime = std::chrono::high_resolution_clock::now();
+		float dt = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
 
-		if(chip8.isLoaded)
-			chip8.RunCycle();
-
+		if (chip8.isLoaded) {
+			if (dt > chip8.cycleDelay) {
+				lastCycle = currTime;
+				chip8.RunCycle();
+			}
+		}
 		// start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
