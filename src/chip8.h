@@ -26,9 +26,15 @@ public:
 	void Reset();
 
 	// Graphics
+	// Monochrome Display
 	uint32_t video[VIDEO_WIDTH * VIDEO_HEIGHT];
-	int VIDEO_SCALE = 10;
+	// Color Display
+	uint32_t display[VIDEO_WIDTH * VIDEO_HEIGHT];
+	int videoScale = 10;
 	bool vSync = true;
+	ImVec4 foreground = ImVec4(0.05f, 0.5f, 1.0f, 1.0f);
+	ImVec4 background = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+	//ImVec4 background = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	// Input
 	uint8_t keypad[KEY_COUNT];
@@ -47,11 +53,11 @@ public:
 	// Timers
 	uint8_t delayTimer;
 	uint8_t soundTimer;
-	uint8_t cycleDelay;
+	int cycleDelay;
 
 	// Booleans
 	bool isLoaded = false;
-	bool shouldDraw = false;
+	bool updateDrawImage = false;
 
 private:
 	// Function Pointer Tables

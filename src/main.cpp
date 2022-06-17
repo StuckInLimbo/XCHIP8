@@ -34,6 +34,7 @@ int main(int argc, char* argv[]) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	std::string glsl_version = "#version 330";
 	#ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	#endif
@@ -59,7 +60,6 @@ int main(int argc, char* argv[]) {
 	else
 		std::cout << "GLAD sucessfully initialized!" << std::endl;
 
-	std::string glsl_version = "#version 330";
 	//std::string glsl_version = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 
 	// Set OGL Viewport
@@ -90,6 +90,7 @@ int main(int argc, char* argv[]) {
 
 	//Init Chip8 Sys
 	Chip8 chip8;
+	// Gets the current time as a high resolution clock
 	auto lastCycle = std::chrono::high_resolution_clock::now();
 	int width = 0, height = 0, controls_width = 0;
 
@@ -97,11 +98,14 @@ int main(int argc, char* argv[]) {
 	while (!glfwWindowShouldClose(window)) {
 		// Input
 		processInput(window);
+		// Gets the current time as a high resolution clock
 		auto currTime = std::chrono::high_resolution_clock::now();
-		float dt = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
+		// Compares the clock to the clock of the last cycle
+		float deltaTime = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
 
 		if (chip8.isLoaded) {
-			if (dt > chip8.cycleDelay) {
+			// cycle delay
+			if (deltaTime > chip8.cycleDelay) {
 				lastCycle = currTime;
 				chip8.RunCycle();
 			}
