@@ -20,21 +20,26 @@ public:
 
 	// Interpreter
 	void RunCycle();
+	// ImGui Windows
 	void RunMenu(int screenWidth, int screenHeight);
 
 	// Reset
 	void Reset();
 
-	// Graphics
-	// Monochrome Display
+	// Monochrome B/W Display
 	uint32_t video[VIDEO_WIDTH * VIDEO_HEIGHT];
-	// Color Display
+
+	// 2-Color Display
 	uint32_t display[VIDEO_WIDTH * VIDEO_HEIGHT];
+
+	// Foreground Color
+	ImVec4 foreground = ImVec4(0.05f, 0.5f, 1.0f, 1.0f);
+
+	// Background Color
+	ImVec4 background = ImVec4(0.03f, 0.03f, 0.03f, 1.0f);
+
 	int videoScale = 10;
 	bool vSync = true;
-	ImVec4 foreground = ImVec4(0.05f, 0.5f, 1.0f, 1.0f);
-	ImVec4 background = ImVec4(0.03f, 0.03f, 0.03f, 1.0f);
-	//ImVec4 background = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	// Input
 	uint8_t keypad[KEY_COUNT];
@@ -66,10 +71,7 @@ private:
 	void TableE();
 	void TableF();
 
-	void Debugger();
-	void Interpreter();
-
-#pragma region Opcodes
+	#pragma region Opcodes
 	// NOP
 	void OP_NULL();
 	// CLS
@@ -142,11 +144,11 @@ private:
 	void OP_Fx55();
 	// LD Vx, [I]
 	void OP_Fx65();
-#pragma endregion
+	#pragma endregion
 
 	bool showMenu = true;
 	bool showDemo = false;
-	char buf[128] = "roms/test.ch8";
+	char buf[128] = "roms/invaders.ch8";
 	//static MemoryEditor memviewer;
 	MemoryEditor ram;
 	ImFont* RobotoMono = nullptr;

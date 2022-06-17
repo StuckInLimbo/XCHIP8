@@ -228,6 +228,11 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 			cycleDelay = 5;
 		ImGui::ColorEdit3("FG Color", (float*)&foreground);
 		ImGui::ColorEdit3("BG Color", (float*)&background);
+		if (ImGui::Button("Swap Palette")) {
+			auto temp = foreground; // classic buffer swap, would be faster with pointers though
+			foreground = background;
+			background = temp;
+		}
 		// TODO: Add addtional options and expand menu.
 		ImGui::End();
 
@@ -310,7 +315,6 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 
 		// RAM Contents Window
 		ImGui::PushFont(RobotoMono);
-		//ImGui::SetNextWindowSize(ImVec2(900.0f, 600.0f));
 		ImGui::SetNextWindowPos(ImVec2(305, static_cast<float>(gameH + 5)));
 		ImGui::Begin("RAM", NULL);
 		ram.Cols = 16;
