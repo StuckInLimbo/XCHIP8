@@ -177,6 +177,8 @@ void Chip8::RunCycle() {
 	// Decode & Execute
 	((*this).*(table[(opcode & 0xF000u) >> 12u]))();
 
+	// TODO: Add sound.
+
 	// Decrement the delay timer if it's been set
 	if (delayTimer > 0) {
 		--delayTimer;
@@ -187,19 +189,19 @@ void Chip8::RunCycle() {
 	}
 }
 
-void Chip8::RunMenu(float screenWidth, float screenHeight) {
+void Chip8::RunMenu(int screenWidth, int screenHeight) {
 	if (showMenu) {
 		uint8_t fg[4] = {
-			(foreground.x * 255),
-			(foreground.y * 255),
-			(foreground.z * 255),
-			(foreground.w * 255)
+			static_cast<uint8_t>(foreground.x * 255),
+			static_cast<uint8_t>(foreground.y * 255),
+			static_cast<uint8_t>(foreground.z * 255),
+			static_cast<uint8_t>(foreground.w * 255)
 		};
 		uint8_t bg[4] = {
-			(background.x * 255),
-			(background.y * 255),
-			(background.z * 255),
-			(foreground.w * 255)
+			static_cast<uint8_t>(background.x * 255),
+			static_cast<uint8_t>(background.y * 255),
+			static_cast<uint8_t>(background.z * 255),
+			static_cast<uint8_t>(foreground.w * 255)
 		};
 		auto framerate = ImGui::GetIO().Framerate;
 		// Menu Window
@@ -226,6 +228,7 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 			cycleDelay = 5;
 		ImGui::ColorEdit3("FG Color", (float*)&foreground);
 		ImGui::ColorEdit3("BG Color", (float*)&background);
+		// TODO: Add addtional options and expand menu.
 		ImGui::End();
 
 		// Game Window
@@ -234,7 +237,7 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 		int gameH = 48 + (32 * videoScale);
 		ImGui::Begin("Interpreter", NULL, ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-		ImGui::SetWindowSize(ImVec2(gameW, gameH));
+		ImGui::SetWindowSize(ImVec2(static_cast<float>(gameW), static_cast<float>(gameH)));
 		if (updateDrawImage) {
 			// Convert Monochrome B/W to custom palette
 			for (int i = 0; i < 2048; i++) {
@@ -280,7 +283,7 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 			glBindTexture(GL_TEXTURE_2D, 0);
 			updateDrawImage = false;
 		}
-		ImGui::Image(reinterpret_cast<ImTextureID>(TEX), ImVec2(64 * videoScale, 32 * videoScale));
+		ImGui::Image(reinterpret_cast<ImTextureID>(TEX), ImVec2(static_cast<float>(64 * videoScale), static_cast<float>(32 * videoScale)));
 		ImGui::End();
 
 		ImGui::SetNextWindowPos(ImVec2(5, 305));
@@ -308,7 +311,7 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 		// RAM Contents Window
 		ImGui::PushFont(RobotoMono);
 		//ImGui::SetNextWindowSize(ImVec2(900.0f, 600.0f));
-		ImGui::SetNextWindowPos(ImVec2(305, gameH + 5));
+		ImGui::SetNextWindowPos(ImVec2(305, static_cast<float>(gameH + 5)));
 		ImGui::Begin("RAM", NULL);
 		ram.Cols = 16;
 		ram.OptShowAscii = true;
@@ -539,10 +542,10 @@ void Chip8::OP_Cxbb() {
 	V[x] = randByte(randGen) & byte;
 }
 
-// Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
+// Draws a sprite at coordinate (Vx, Vy) that has a width of 8 pixels and a height of N pixels.
 // Each row of 8 pixels is read as bit-coded starting from memory location I;
 // I value doesn't change after the execution of this instruction.
-// VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, 
+// VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn,
 // and to 0 if that doesn't happen.
 void Chip8::OP_Dxyn() {
 	uint8_t x = (opcode & 0x0F00u) >> 8u;
@@ -559,9 +562,9 @@ void Chip8::OP_Dxyn() {
 		uint8_t pixel = memory[I + row];
 
 		for (unsigned int col = 0; col < 8; ++col) {
+			// Weird math to AND together pixel bytes with bitwise
 			uint8_t spritePixel = pixel & (0x80u >> col);
 			uint32_t* screenPixel = &video[(yPos + row) * VIDEO_WIDTH + (xPos + col)];
-			//uint32_t* screenPixel = &video[(row) * VIDEO_WIDTH + (col)];
 
 			// Sprite pixel is on
 			if (spritePixel) {
@@ -575,6 +578,7 @@ void Chip8::OP_Dxyn() {
 			}
 		}
 	}
+	// Small optimization that allows us to only process a new image when we have new data.
 	updateDrawImage = true;
 }
 
