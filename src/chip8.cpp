@@ -189,27 +189,51 @@ void Chip8::RunCycle() {
 	}
 }
 
+// Get color byte and replace it with our custom colors.
+// This whole process also flips it from RGBA to ABGR. Because endianess, or something.
+// From 0xRRGGBBAA to 0xAABBGGRR, for example. I don't know a better way to do this tbh.
+// Grab red byte, and don't shift.
+uint32_t GetColoredPixel(uint32_t video, ImVec4 fgCol, ImVec4 bgCol) {
+	uint8_t pixel = 0U; uint32_t newPixel = 0U;
+
+	// Storing the bitwised variable is required, it can't be done in the if.
+	pixel = (video & 0xFF000000) >> 24;
+	if (pixel == 0xFF) {
+		newPixel |= static_cast<uint8_t>(fgCol.x * 255);
+	} else {
+		newPixel |= static_cast<uint8_t>(bgCol.x * 255);
+	}
+	pixel = (video & 0xFF0000) >> 16;
+	if (pixel == 0xFF) {
+		newPixel |= (static_cast<uint8_t>(fgCol.y) << 8);
+	} else {
+		newPixel |= (static_cast<uint8_t>(bgCol.y) << 8);
+	}
+	pixel = (video & 0xFF00) >> 8;
+	if (pixel == 0xFF) {
+		newPixel |= (static_cast<uint8_t>(fgCol.z) << 16);
+	} else {
+		newPixel |= (static_cast<uint8_t>(bgCol.z) << 16);
+	}
+	pixel = (video & 0xFF);
+	if (pixel == 0xFF) {
+		newPixel |= (static_cast<uint8_t>(fgCol.w) << 24);
+	} else {
+		newPixel |= (static_cast<uint8_t>(bgCol.w) << 24);
+	}
+
+	return newPixel;
+}
+
 void Chip8::RunMenu(int screenWidth, int screenHeight) {
 	if (showMenu) {
-		uint8_t fg[4] = {
-			static_cast<uint8_t>(foreground.x * 255),
-			static_cast<uint8_t>(foreground.y * 255),
-			static_cast<uint8_t>(foreground.z * 255),
-			static_cast<uint8_t>(foreground.w * 255)
-		};
-		uint8_t bg[4] = {
-			static_cast<uint8_t>(background.x * 255),
-			static_cast<uint8_t>(background.y * 255),
-			static_cast<uint8_t>(background.z * 255),
-			static_cast<uint8_t>(foreground.w * 255)
-		};
 		auto framerate = ImGui::GetIO().Framerate;
 		// Menu Window
 		ImGui::SetNextWindowPos(ImVec2(5, 5));
 		ImGui::SetNextWindowSize(ImVec2(300, 300));
 		ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
 		// buttons and most other widgets return true when clicked/edited/activated
-		ImGui::Checkbox("VSync", &vSync); ImGui::SameLine();
+		//ImGui::Checkbox("VSync", &vSync); ImGui::SameLine();
 		if(!vSync)
 			glfwSwapInterval(0);
 		else {
@@ -236,50 +260,16 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 		// TODO: Add addtional options and expand menu.
 		ImGui::End();
 
-		// Game Window
+		// Interpreter Window
 		ImGui::SetNextWindowPos(ImVec2(305, 5));
-		int gameW = 32 + (64 * videoScale); //adds small buffer required for imgui window
-		int gameH = 48 + (32 * videoScale);
-		ImGui::Begin("Interpreter", NULL, ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		// adds small window buffer required for imgui window to function properly
+		int gameW = 32 + (64 * videoScale); int gameH = 48 + (32 * videoScale);
+		ImGui::Begin("Interpreter", NULL, ImGuiWindowFlags_NoResize);
 		ImGui::SetWindowSize(ImVec2(static_cast<float>(gameW), static_cast<float>(gameH)));
 		if (updateDrawImage) {
 			// Convert Monochrome B/W to custom palette
 			for (int i = 0; i < 2048; i++) {
-				uint8_t pixel = 0U; uint32_t newPixel = 0U;
-				// Get color byte and replace it with our custom colors.
-				// This whole process also flips it from RGBA to ABGR. Because endianess, or something.
-				// From 0xRRGGBBAA to 0xAABBGGRR, for example. I don't know a better way to do this tbh.
-				// Grab red byte, and don't shift.
-				pixel = (video[i] & 0xFF000000) >> 24;
-				if (pixel == 0xFF) {
-					newPixel |= (fg[0]);
-				} else {
-					newPixel |= (bg[0]);
-				}
-				// Grab green byte, shift it 8 bits left.
-				pixel = (video[i] & 0xFF0000) >> 16;
-				if (pixel == 0xFF) {
-					newPixel |= (fg[1] << 8);
-				} else {
-					newPixel |= (bg[1] << 8);
-				}
-				// Grab blue byte, shift it 16 bits left.
-				pixel = (video[i] & 0xFF00) >> 8;
-				if (pixel == 0xFF) {
-					newPixel |= (fg[2] << 16);
-				} else {
-					newPixel |= (bg[2] << 16);
-				}
-				// Grab alpha byte, shift it 24 bits left.
-				pixel = (video[i] & 0xFF);
-				if (pixel == 0xFF) {
-					newPixel |= (fg[3] << 24);
-				} else {
-					newPixel |= (bg[3] << 24);
-				}
-
-				display[i] = newPixel;
+				display[i] = GetColoredPixel(video[i], foreground, background);
 			}
 
 			glBindTexture(GL_TEXTURE_2D, TEX);
