@@ -33,7 +33,7 @@ public:
 	int videoScale = 10;
 	bool vSync = true;
 	ImVec4 foreground = ImVec4(0.05f, 0.5f, 1.0f, 1.0f);
-	ImVec4 background = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+	ImVec4 background = ImVec4(0.03f, 0.03f, 0.03f, 1.0f);
 	//ImVec4 background = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	// Input

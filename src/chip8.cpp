@@ -177,6 +177,8 @@ void Chip8::RunCycle() {
 	// Decode & Execute
 	((*this).*(table[(opcode & 0xF000u) >> 12u]))();
 
+	// TODO: Add sound.
+
 	// Decrement the delay timer if it's been set
 	if (delayTimer > 0) {
 		--delayTimer;
@@ -226,6 +228,7 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 			cycleDelay = 5;
 		ImGui::ColorEdit3("FG Color", (float*)&foreground);
 		ImGui::ColorEdit3("BG Color", (float*)&background);
+		// TODO: Add addtional options and expand menu.
 		ImGui::End();
 
 		// Game Window
@@ -539,10 +542,10 @@ void Chip8::OP_Cxbb() {
 	V[x] = randByte(randGen) & byte;
 }
 
-// Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
+// Draws a sprite at coordinate (Vx, Vy) that has a width of 8 pixels and a height of N pixels.
 // Each row of 8 pixels is read as bit-coded starting from memory location I;
 // I value doesn't change after the execution of this instruction.
-// VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, 
+// VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn,
 // and to 0 if that doesn't happen.
 void Chip8::OP_Dxyn() {
 	uint8_t x = (opcode & 0x0F00u) >> 8u;
@@ -559,9 +562,9 @@ void Chip8::OP_Dxyn() {
 		uint8_t pixel = memory[I + row];
 
 		for (unsigned int col = 0; col < 8; ++col) {
+			// Weird math to AND together pixel bytes with bitwise
 			uint8_t spritePixel = pixel & (0x80u >> col);
 			uint32_t* screenPixel = &video[(yPos + row) * VIDEO_WIDTH + (xPos + col)];
-			//uint32_t* screenPixel = &video[(row) * VIDEO_WIDTH + (col)];
 
 			// Sprite pixel is on
 			if (spritePixel) {
@@ -575,6 +578,7 @@ void Chip8::OP_Dxyn() {
 			}
 		}
 	}
+	// Small optimization that allows us to only process a new image when we have new data.
 	updateDrawImage = true;
 }
 

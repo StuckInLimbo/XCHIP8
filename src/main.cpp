@@ -25,6 +25,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	// TODO: Process input for CHIP8 interpreter.
 }
 
 int main(int argc, char* argv[]) {
@@ -103,6 +104,8 @@ int main(int argc, char* argv[]) {
 		// Compares the clock to the clock of the last cycle
 		float deltaTime = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
 
+		// TODO: Run this in a seperate thread, so that gpu update frames don't 
+		// speed up or slow down the rendering
 		if (chip8.isLoaded) {
 			// cycle delay
 			if (deltaTime > chip8.cycleDelay) {
