@@ -189,6 +189,18 @@ void Chip8::RunCycle() {
 
 void Chip8::RunMenu(float screenWidth, float screenHeight) {
 	if (showMenu) {
+		uint8_t fg[4] = {
+			(foreground.x * 255),
+			(foreground.y * 255),
+			(foreground.z * 255),
+			(foreground.w * 255)
+		};
+		uint8_t bg[4] = {
+			(background.x * 255),
+			(background.y * 255),
+			(background.z * 255),
+			(foreground.w * 255)
+		};
 		auto framerate = ImGui::GetIO().Framerate;
 		// Menu Window
 		ImGui::SetNextWindowPos(ImVec2(5, 5));
@@ -224,53 +236,41 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::SetWindowSize(ImVec2(gameW, gameH));
 		if (updateDrawImage) {
-			uint8_t fg[4] = {
-				(foreground.x * 255),
-				(foreground.y * 255),
-				(foreground.z * 255),
-				(foreground.w * 255)
-			};
-			uint8_t bg[4] = {
-				(background.x * 255),
-				(background.y * 255),
-				(background.z * 255),
-				(foreground.w * 255)
-			};
-
-			// Convert screen pixels to something OGL can handle.
+			// Convert Monochrome B/W to custom palette
 			for (int i = 0; i < 2048; i++) {
-				uint32_t pixel = video[i]; 
-				uint32_t newPixel = 0x0;
-				// Convert Monochrome to custom palette
-				uint8_t pixelR, pixelG, pixelB, pixelA;
-				// Get R
-				pixelR = (pixel & 0xFF000000) >> 24;
-				if (pixelR == 255) {
+				uint8_t pixel = 0U; uint32_t newPixel = 0U;
+				// Get color byte and replace it with our custom colors.
+				// This whole process also flips it from RGBA to ABGR. Because endianess, or something.
+				// From 0xRRGGBBAA to 0xAABBGGRR, for example. I don't know a better way to do this tbh.
+				// Grab red byte, and don't shift.
+				pixel = (video[i] & 0xFF000000) >> 24;
+				if (pixel == 0xFF) {
 					newPixel |= (fg[0]);
 				} else {
 					newPixel |= (bg[0]);
 				}
-				// Get G
-				pixelG = (pixel & 0xFF0000) >> 16;
-				if (pixelG == 255) {
+				// Grab green byte, shift it 8 bits left.
+				pixel = (video[i] & 0xFF0000) >> 16;
+				if (pixel == 0xFF) {
 					newPixel |= (fg[1] << 8);
 				} else {
 					newPixel |= (bg[1] << 8);
 				}
-				// Get B
-				pixelB = (pixel & 0xFF00) >> 8;
-				if (pixelB == 255) {
+				// Grab blue byte, shift it 16 bits left.
+				pixel = (video[i] & 0xFF00) >> 8;
+				if (pixel == 0xFF) {
 					newPixel |= (fg[2] << 16);
 				} else {
 					newPixel |= (bg[2] << 16);
 				}
-				// Set Alpha
-				pixelA = (pixel & 0xFF);
-				if (pixelA == 255) {
+				// Grab alpha byte, shift it 24 bits left.
+				pixel = (video[i] & 0xFF);
+				if (pixel == 0xFF) {
 					newPixel |= (fg[3] << 24);
 				} else {
 					newPixel |= (bg[3] << 24);
 				}
+
 				display[i] = newPixel;
 			}
 
@@ -297,8 +297,7 @@ void Chip8::RunMenu(float screenWidth, float screenHeight) {
 		ImGui::BeginChild("DebugR", ImVec2(125, 425), false);
 		ImGui::Text("Delay Timer: %x", delayTimer);
 		ImGui::Text("Sound Timer: %x", soundTimer);
-		ImGui::Text("SP: %hu", sp);
-		//ImGui::Text("%s", "Stack");
+		ImGui::Text("Stack Ptr: %hu", sp);
 		for (int i = 0; i < 16; i++) {
 			ImGui::Text("S[%i]: %x", i, stack[i]);
 		}
