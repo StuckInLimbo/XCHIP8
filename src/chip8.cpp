@@ -193,7 +193,7 @@ void Chip8::RunCycle() {
 // This whole process also flips it from RGBA to ABGR. Because endianess, or something.
 // From 0xRRGGBBAA to 0xAABBGGRR, for example. I don't know a better way to do this tbh.
 // Grab red byte, and don't shift.
-uint32_t GetColoredPixel(uint32_t video, ImVec4 fgCol, ImVec4 bgCol) {
+uint32_t Chip8::GetColoredPixel(uint32_t video, ImVec4 fgCol, ImVec4 bgCol) {
 	uint8_t pixel = 0U; uint32_t newPixel = 0U;
 
 	// Storing the bitwised variable is required, it can't be done in the if.
@@ -205,21 +205,21 @@ uint32_t GetColoredPixel(uint32_t video, ImVec4 fgCol, ImVec4 bgCol) {
 	}
 	pixel = (video & 0xFF0000) >> 16;
 	if (pixel == 0xFF) {
-		newPixel |= (static_cast<uint8_t>(fgCol.y) << 8);
+		newPixel |= (static_cast<uint8_t>(fgCol.y * 255) << 8);
 	} else {
-		newPixel |= (static_cast<uint8_t>(bgCol.y) << 8);
+		newPixel |= (static_cast<uint8_t>(bgCol.y * 255) << 8);
 	}
 	pixel = (video & 0xFF00) >> 8;
 	if (pixel == 0xFF) {
-		newPixel |= (static_cast<uint8_t>(fgCol.z) << 16);
+		newPixel |= (static_cast<uint8_t>(fgCol.z * 255) << 16);
 	} else {
-		newPixel |= (static_cast<uint8_t>(bgCol.z) << 16);
+		newPixel |= (static_cast<uint8_t>(bgCol.z * 255) << 16);
 	}
 	pixel = (video & 0xFF);
 	if (pixel == 0xFF) {
-		newPixel |= (static_cast<uint8_t>(fgCol.w) << 24);
+		newPixel |= (static_cast<uint8_t>(fgCol.w * 255) << 24);
 	} else {
-		newPixel |= (static_cast<uint8_t>(bgCol.w) << 24);
+		newPixel |= (static_cast<uint8_t>(bgCol.w * 255) << 24);
 	}
 
 	return newPixel;
