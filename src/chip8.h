@@ -33,7 +33,7 @@ public:
 	uint32_t display[VIDEO_WIDTH * VIDEO_HEIGHT];
 
 	// Foreground Color
-	ImVec4 foreground = ImVec4(0.05f, 0.5f, 1.0f, 1.0f);
+	ImVec4 foreground = ImVec4(0.05f, 1.0f, 0.05f, 1.0f);
 
 	// Background Color
 	ImVec4 background = ImVec4(0.03f, 0.03f, 0.03f, 1.0f);

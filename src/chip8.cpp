@@ -203,37 +203,30 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 			static_cast<uint8_t>(background.z * 255),
 			static_cast<uint8_t>(foreground.w * 255)
 		};
-		auto framerate = ImGui::GetIO().Framerate;
 		// Menu Window
 		ImGui::SetNextWindowPos(ImVec2(5, 5));
 		ImGui::SetNextWindowSize(ImVec2(300, 300));
 		ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
 		// buttons and most other widgets return true when clicked/edited/activated
-		ImGui::Checkbox("VSync", &vSync); ImGui::SameLine();
-		if(!vSync)
-			glfwSwapInterval(0);
-		else {
-			glfwSwapInterval(1);
-		}
-		ImGui::Text("(%.1f FPS)", framerate); 
-		ImGui::InputText("filename", buf, sizeof(buf), ImGuiInputTextFlags_CharsNoBlank);
+		ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 		if (ImGui::Button("Load ROM")) {
 			LoadRom((const char*)buf);
 		}
-		ImGui::InputInt("Video Scale: ", &videoScale, 1, 5);
-		if (videoScale <= 0)
+		ImGui::SameLine();
+		ImGui::InputText("##", buf, sizeof(buf), ImGuiInputTextFlags_CharsNoBlank);
+		ImGui::InputInt("Video Scale", &videoScale, 1, 5);
+		if (videoScale <= 1)
 			videoScale = 1;
-		ImGui::InputInt("Clock: ", &cycleDelay, 5, 25);
-		if (cycleDelay <= 0)
+		ImGui::InputInt("Clock", &cycleDelay, 5, 25);
+		if (cycleDelay <= 5)
 			cycleDelay = 5;
 		ImGui::ColorEdit3("FG Color", (float*)&foreground);
 		ImGui::ColorEdit3("BG Color", (float*)&background);
-		if (ImGui::Button("Swap Palette")) {
+		if (ImGui::Button("Swap Color Palette")) {
 			auto temp = foreground; // classic buffer swap, would be faster with pointers though
 			foreground = background;
 			background = temp;
 		}
-		// TODO: Add addtional options and expand menu.
 		ImGui::End();
 
 		// Game Window
@@ -291,18 +284,20 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 		ImGui::Image(reinterpret_cast<ImTextureID>(TEX), ImVec2(static_cast<float>(64 * videoScale), static_cast<float>(32 * videoScale)));
 		ImGui::End();
 
+		// Debugger Windows
 		ImGui::SetNextWindowPos(ImVec2(5, 305));
 		ImGui::Begin("Debugger", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-		ImGui::BeginChild("DebugL", ImVec2(125, 425), false);
+		ImGui::PushFont(RobotoMono);
+		ImGui::BeginChild("DebugL", ImVec2(135, 425), false);
 		ImGui::Text("opcode: %x", opcode);
 		ImGui::Text("PC: %hu", pc);
 		ImGui::Text("I: %hu", I);
 		for (int i = 0; i < 16; i++) {
-			ImGui::Text("V[%0i]: %x", i, V[0]);
+			ImGui::Text("V[%0i]: %x", i, V[i]);
 		}
 		ImGui::EndChild(); ImGui::SameLine(); //DebugL
-
-		ImGui::BeginChild("DebugR", ImVec2(125, 425), false);
+		
+		ImGui::BeginChild("DebugR", ImVec2(135, 425), false);
 		ImGui::Text("Delay Timer: %x", delayTimer);
 		ImGui::Text("Sound Timer: %x", soundTimer);
 		ImGui::Text("Stack Ptr: %hu", sp);
@@ -310,18 +305,18 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 			ImGui::Text("S[%i]: %x", i, stack[i]);
 		}
 		ImGui::EndChild(); ImGui::SameLine(); // DebugR
-
+		ImGui::PopFont();
 		ImGui::End(); ImGui::SameLine();
-
+		
 		// RAM Contents Window
-		ImGui::PushFont(RobotoMono);
 		ImGui::SetNextWindowPos(ImVec2(305, static_cast<float>(gameH + 5)));
 		ImGui::Begin("RAM", NULL);
+		ImGui::PushFont(RobotoMono);
 		ram.Cols = 16;
 		ram.OptShowAscii = true;
 		ram.DrawContents(&memory, sizeof(memory), 0x0);
-		ImGui::End();
 		ImGui::PopFont();
+		ImGui::End();
 	}
 }
 

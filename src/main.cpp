@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 	// Set OGL Viewport
 	glViewport(0, 0, windowWidth, windowHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSwapInterval(0);
+	glfwSwapInterval(1);
 	glfwMaximizeWindow(window);
 
 	// setup Dear ImGui context
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 	#pragma endregion
 
 	// colors are set in RGBA, but as float
-	ImVec4 background = ImVec4(35 / 255.0f, 35 / 255.0f, 35 / 255.0f, 1.00f);
+	ImVec4 clearColor = ImVec4(35 / 255.0f, 35 / 255.0f, 35 / 255.0f, 1.00f);
 
 	//Init Chip8 Sys
 	Chip8 chip8;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		
-		glClearColor(background.x, background.y, background.z, background.w);
+		glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// get the window size as a base for calculating widgets geometry		
