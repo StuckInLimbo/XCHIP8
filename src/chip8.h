@@ -26,6 +26,9 @@ public:
 	// Reset
 	void Reset();
 
+	// B/W -> Color Conversion
+	uint32_t GetColoredPixel(uint32_t video, ImVec4 fgCol, ImVec4 bgCol);
+
 	// Monochrome B/W Display
 	uint32_t video[VIDEO_WIDTH * VIDEO_HEIGHT];
 
@@ -36,7 +39,7 @@ public:
 	ImVec4 foreground = ImVec4(0.05f, 1.0f, 0.05f, 1.0f);
 
 	// Background Color
-	ImVec4 background = ImVec4(0.03f, 0.03f, 0.03f, 1.0f);
+	ImVec4 background = ImVec4(0.03f, 0.03f, 0.03f, 1.00f);
 
 	int videoScale = 10;
 	bool vSync = true;
