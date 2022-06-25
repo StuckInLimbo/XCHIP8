@@ -227,12 +227,10 @@ uint32_t Chip8::GetColoredPixel(uint32_t video, ImVec4 fgCol, ImVec4 bgCol) {
 
 void Chip8::RunMenu(int screenWidth, int screenHeight) {
 	if (showMenu) {
-		auto framerate = ImGui::GetIO().Framerate;
 		// Menu Window
 		ImGui::SetNextWindowPos(ImVec2(5, 5));
 		ImGui::SetNextWindowSize(ImVec2(300, 300));
 		ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
-		// buttons and most other widgets return true when clicked/edited/activated
 		ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 		if (ImGui::Button("Load ROM")) {
 			LoadRom((const char*)buf);
@@ -278,7 +276,7 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 		// Debugger Windows
 		ImGui::SetNextWindowPos(ImVec2(5, 305));
 		ImGui::Begin("Debugger", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-		ImGui::PushFont(RobotoMono);
+		ImGui::PushFont(RobotoMono); // Proper push/pop
 		ImGui::BeginChild("DebugL", ImVec2(135, 425), false);
 		ImGui::Text("opcode: %x", opcode);
 		ImGui::Text("PC: %hu", pc);
@@ -296,17 +294,17 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 			ImGui::Text("S[%i]: %x", i, stack[i]);
 		}
 		ImGui::EndChild(); ImGui::SameLine(); // DebugR
-		ImGui::PopFont();
+		ImGui::PopFont(); // Proper push/pop
 		ImGui::End(); ImGui::SameLine();
 		
 		// RAM Contents Window
 		ImGui::SetNextWindowPos(ImVec2(305, static_cast<float>(gameH + 5)));
 		ImGui::Begin("RAM", NULL);
-		ImGui::PushFont(RobotoMono);
+		ImGui::PushFont(RobotoMono); // Proper push/pop
 		ram.Cols = 16;
 		ram.OptShowAscii = true;
 		ram.DrawContents(&memory, sizeof(memory), 0x0);
-		ImGui::PopFont();
+		ImGui::PopFont(); // Proper push/pop
 		ImGui::End();
 	}
 }

@@ -22,10 +22,95 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 // \brief Process input for GLFW Window
-void processInput(GLFWwindow* window) {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-	// TODO: Process input for CHIP8 interpreter.
+void processInput(GLFWwindow* window, Chip8* c) {
+	// Exit Process
+	if(glfwGetKey(window, GLFW_KEY_ESCAPE) == 1)
+			glfwSetWindowShouldClose(window, true);
+
+	// 1 2 3 C -> 1 2 3 4
+	// 4 5 6 D -> Q W E R
+	// 7 8 9 E -> A S D F
+	// A 0 C F -> Z X C V
+
+	if (glfwGetKey(window, GLFW_KEY_X) == 1)
+		c->keypad[0] = 1;
+	else if(glfwGetKey(window, GLFW_KEY_X) == 0)
+		c->keypad[0] = 1;
+
+	if (glfwGetKey(window, GLFW_KEY_1) == 1)
+		c->keypad[1] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_1) == 0)
+		c->keypad[1] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_2) == 1)
+		c->keypad[2] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_2) == 0)
+		c->keypad[2] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_3) == 1)
+		c->keypad[3] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_3) == 0)
+		c->keypad[3] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_Q) == 1)
+		c->keypad[4] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_Q) == 0)
+		c->keypad[4] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == 1)
+		c->keypad[5] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_W) == 0)
+		c->keypad[5] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_E) == 1)
+		c->keypad[6] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_E) == 0)
+		c->keypad[6] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_A) == 1)
+		c->keypad[7] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_A) == 0)
+		c->keypad[7] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_S) == 1)
+		c->keypad[8] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_S) == 0)
+		c->keypad[8] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_D) == 1)
+		c->keypad[9] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_D) == 0)
+		c->keypad[9] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_Z) == 1)
+		c->keypad[0xA] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_Z) == 0)
+		c->keypad[0xA] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_C) == 1)
+		c->keypad[0xB] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_C) == 0)
+		c->keypad[0xB] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_4) == 1)
+		c->keypad[0xC] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_4) == 0)
+		c->keypad[0xC] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_R) == 1)
+		c->keypad[0xD] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_R) == 0)
+		c->keypad[0xD] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_F) == 1)
+		c->keypad[0xE] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_F) == 0)
+		c->keypad[0xE] = 0;
+
+	if (glfwGetKey(window, GLFW_KEY_V) == 1)
+		c->keypad[0xF] = 1;
+	else if (glfwGetKey(window, GLFW_KEY_V) == 0)
+		c->keypad[0xF] = 0;
 }
 
 int main(int argc, char* argv[]) {
@@ -97,8 +182,8 @@ int main(int argc, char* argv[]) {
 
 	// Render loop
 	while (!glfwWindowShouldClose(window)) {
-		// Input
-		processInput(window);
+		// Input - Old, replaced with callback
+		processInput(window, &chip8);
 		// Gets the current time as a high resolution clock
 		auto currTime = std::chrono::high_resolution_clock::now();
 		// Compares the clock to the clock of the last cycle
