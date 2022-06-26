@@ -121,7 +121,7 @@ void processInput(GLFWwindow* window, Chip8* c) {
 
 void GameThread(Chip8* c) {
 	// Gets the current time as a high resolution clock
-	std::chrono::steady_clock::time_point lastCycle = std::chrono::high_resolution_clock::now();
+	auto lastCycle = std::chrono::high_resolution_clock::now();
 
 	while (true) { // Keep Thread Alive
 		while (c->isLoaded && c->isRunning) {
@@ -141,7 +141,7 @@ void GameThread(Chip8* c) {
 
 void TimerThread(Chip8* c)  {
 	// Gets the current time as a high resolution clock
-	std::chrono::steady_clock::time_point lastCycle = std::chrono::high_resolution_clock::now();
+	auto lastCycle = std::chrono::high_resolution_clock::now();
 
 	while (true) { // Keep Thread Alive
 		while (c->isLoaded && c->isRunning) {
