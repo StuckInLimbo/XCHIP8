@@ -20,6 +20,7 @@ public:
 
 	// Interpreter
 	void RunCycle();
+	void RunTimers();
 	// ImGui Windows
 	void RunMenu(int screenWidth, int screenHeight);
 
@@ -65,6 +66,7 @@ public:
 
 	// Booleans
 	bool isLoaded = false;
+	bool isRunning = false;
 	bool updateDrawImage = false;
 
 private:

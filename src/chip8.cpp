@@ -38,6 +38,7 @@ uint8_t fontset[FONTSET_SIZE] = {
 
 // randGen part is from austinmorlan
 Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().count()) {
+	isRunning = true;
 	// Zero out memory for registers
 	memset(video, 0, sizeof(video));
 	memset(display, 0, sizeof(display));
@@ -52,7 +53,7 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 	sp = 0;
 	delayTimer = 0;
 	soundTimer = 0;
-	cycleDelay = 975;
+	cycleDelay = 2000; // 500Hz
 	videoScale = 15;
 
 	// Initialize RNG
@@ -126,6 +127,7 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 }
 
 void Chip8::Reset() {
+	isRunning = true;
 	// Zero out memory for registers
 	memset(video, 0, sizeof(video));
 	memset(display, 0, sizeof(display));
@@ -176,9 +178,9 @@ void Chip8::RunCycle() {
 
 	// Decode & Execute
 	((*this).*(table[(opcode & 0xF000u) >> 12u]))();
+}
 
-	// TODO: Add sound.
-
+void Chip8::RunTimers() {
 	// Decrement the delay timer if it's been set
 	if (delayTimer > 0) {
 		--delayTimer;

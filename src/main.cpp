@@ -22,9 +22,6 @@
 // Program
 #include "chip8.h"
 
-// Global Timer
-std::chrono::steady_clock::time_point lastCycle;
-
 // \brief Callback for GLFW to resize the viewport whenever the window is resized
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -122,20 +119,43 @@ void processInput(GLFWwindow* window, Chip8* c) {
 		c->keypad[0xF] = 0;
 }
 
-void GameThread(GLFWwindow* w, Chip8* c) {
-	while (!glfwWindowShouldClose(w)) {
-		// Gets the current time as a high resolution clock
-		auto currTime = std::chrono::high_resolution_clock::now();
-		// Compares the clock to the clock of the last cycle
-		float deltaTime = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
+void GameThread(Chip8* c) {
+	// Gets the current time as a high resolution clock
+	std::chrono::steady_clock::time_point lastCycle = std::chrono::high_resolution_clock::now();
 
-		if (c->isLoaded) {
-			// cycle delay
+	while (true) { // Keep Thread Alive
+		while (c->isLoaded && c->isRunning) {
+			// Gets the current time as a high resolution clock
+			auto currTime = std::chrono::high_resolution_clock::now();
+			// Compares the clock to the clock of the last cycle
+			float deltaTime = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
+
 			if (deltaTime > c->cycleDelay) {
 				lastCycle = currTime;
 				c->RunCycle();
 			}
 		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+}
+
+void TimerThread(Chip8* c)  {
+	// Gets the current time as a high resolution clock
+	std::chrono::steady_clock::time_point lastCycle = std::chrono::high_resolution_clock::now();
+
+	while (true) { // Keep Thread Alive
+		while (c->isLoaded && c->isRunning) {
+			// Gets the current time as a high resolution clock
+			auto currTime = std::chrono::high_resolution_clock::now();
+			// Compares the clock to the clock of the last cycle
+			float deltaTime = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
+
+			if (deltaTime > 16330) { // 16.33ms
+				lastCycle = currTime;
+				c->RunTimers();
+			}
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 }
 
@@ -202,30 +222,16 @@ int run() {
 
 	//Init Chip8 Sys
 	Chip8 chip8;
-	// Gets the current time as a high resolution clock
-	lastCycle = std::chrono::high_resolution_clock::now();
 	int width = 0, height = 0, controls_width = 0;
 
-	std::thread c8(GameThread, window, &chip8);
+	std::thread game(GameThread, &chip8);
+	std::thread timers(TimerThread, &chip8);
 
 	// Render loop
 	while (!glfwWindowShouldClose(window)) {
 		// Input - Old, replaced with callback
 		processInput(window, &chip8);
-		// Gets the current time as a high resolution clock
-		//auto currTime = std::chrono::high_resolution_clock::now();
-		// Compares the clock to the clock of the last cycle
-		//float deltaTime = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
 
-		// TODO: Run this in a seperate thread, so that gpu update frames don't 
-		// speed up or slow down the rendering
-		//if (chip8.isLoaded) {
-		//	// cycle delay
-		//	if (deltaTime > chip8.cycleDelay) {
-		//		lastCycle = currTime;
-		//		chip8.RunCycle();
-		//	}
-		//}
 		// start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -252,7 +258,8 @@ int run() {
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 	glfwTerminate();
-	c8.detach();
+	game.detach();
+	timers.detach();
 
 	return 0;
 }
