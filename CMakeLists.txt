@@ -51,7 +51,7 @@ set(sources
 # Add source to this project's executable.
 if (WIN32)
     message(STATUS ">>> WIN32")
-    add_executable (XCHIP8 ${sources})
+    add_executable (XCHIP8 WIN32 ${sources})
 else()
     message(STATUS ">>> NOT WIN32")
     add_executable (XCHIP8 ${sources})
