@@ -28,6 +28,8 @@ set(sources
     src/main.cpp
     src/chip8.cpp
     src/chip8.h
+    src/state.cpp
+    src/state.h
     src/imgui/imconfig.h
     src/imgui/imgui.cpp
     src/imgui/imgui.h

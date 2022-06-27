@@ -22,6 +22,14 @@
 // Program
 #include "chip8.h"
 
+void XBeep() {
+#if defined(_WIN64) or defined(_WIN32)
+	Beep(500, 64);
+#else
+	std::cout << '\a';
+#endif
+}
+
 // \brief Callback for GLFW to resize the viewport whenever the window is resized
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -134,8 +142,11 @@ void GameThread(Chip8* c) {
 				lastCycle = currTime;
 				c->RunCycle();
 			}
+			if (c->soundTimer == 1) {
+				XBeep();
+			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 }
 
@@ -155,7 +166,7 @@ void TimerThread(Chip8* c)  {
 				c->RunTimers();
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 }
 
@@ -171,7 +182,7 @@ int run() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	#endif
 
-	int windowWidth = 1280, windowHeight = 720;
+	int windowWidth = 1600, windowHeight = 800;
 
 	// Create GLFW window context
 	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "XCHIP8", NULL, NULL);
@@ -198,7 +209,7 @@ int run() {
 	glViewport(0, 0, windowWidth, windowHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSwapInterval(1);
-	glfwMaximizeWindow(window);
+	//glfwMaximizeWindow(window);
 
 	// setup Dear ImGui context
 	IMGUI_CHECKVERSION();

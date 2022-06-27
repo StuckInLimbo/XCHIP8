@@ -1,14 +1,86 @@
 #include "chip8.h"
+// Error Output
 #include <iostream>
+// Timer
 #include <chrono>
-// For file loading
+// File Loading & Savestate
 #include <fstream>
+
 // For ImGui Menus
+#include <GLFW/glfw3.h>
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_glfw.h"
-#include <GLFW/glfw3.h>
 #include "imgui/fonts/OpenSans.h"
 #include "imgui/fonts/RobotoMono.h"
+
+SaveStates::SaveStates() {
+	for (int i = 0; i < 10; i++) {
+		States[i] = new State();
+	}
+}
+
+void SaveStates::CreateState(Chip8* c, State* s) {
+
+	for (int i = 0; i < 4096; i++) {
+		s->ram[i] = c->ram[i];
+	}
+	for (int i = 0; i < 2048; i++) {
+		s->video[i] = c->video[i];
+	}
+	for (int i = 0; i < 2048; i++) {
+		s->display[i] = c->display[i];
+	}
+	for (int i = 0; i < 16; i++) {
+		s->V[i] = c->V[i];
+	}
+	for (int i = 0; i < 16; i++) {
+		s->stack[i] = c->stack[i];
+	}
+	for (int i = 0; i < 16; i++) {
+		s->keypad[i] = c->keypad[i];
+	}
+	s->opcode = c->opcode;
+	s->I = c->I;
+	s->pc = c->pc;
+	s->sp = c->sp;
+	s->delayTimer = c->delayTimer;
+	s->soundTimer = c->soundTimer;
+
+	// TODO: Save savestate to filesys
+}
+
+void SaveStates::Loadstate(Chip8* c, State* s) {
+	// TODO: Load savestate from filesys
+	for (int i = 0; i < 4096; i++) {
+		c->ram[i] = s->ram[i];
+	}
+	for (int i = 0; i < 2048; i++) {
+		c->video[i] = s->video[i];
+	}
+	for (int i = 0; i < 2048; i++) {
+		c->display[i] = s->display[i];
+	}
+	for (int i = 0; i < 16; i++) {
+		c->V[i] = s->V[i];
+	}
+	for (int i = 0; i < 16; i++) {
+		c->stack[i] = s->stack[i];
+	}
+	for (int i = 0; i < 16; i++) {
+		c->keypad[i] = s->keypad[i];
+	}
+	c->opcode = s->opcode;
+	c->I = s->I;
+	c->pc = s->pc;
+	c->sp = s->sp;
+	c->delayTimer = s->delayTimer;
+	c->soundTimer = s->soundTimer;
+
+	glBindTexture(GL_TEXTURE_2D, c->TEX);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 32, 0, GL_RGBA,
+		GL_UNSIGNED_BYTE, c->display);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
 
 // Fixed font address at $50
 const unsigned int FONTSET_START_ADDRESS = 0x50;
@@ -42,7 +114,7 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 	// Zero out memory for registers
 	memset(video, 0, sizeof(video));
 	memset(display, 0, sizeof(display));
-	memset(memory, 0, sizeof(memory));
+	memset(ram, 0, sizeof(ram));
 	memset(V, 0, sizeof(V));
 	memset(stack, 0, sizeof(stack));
 	memset(keypad, 0, sizeof(keypad));
@@ -53,18 +125,20 @@ Chip8::Chip8() : randGen(std::chrono::system_clock::now().time_since_epoch().cou
 	sp = 0;
 	delayTimer = 0;
 	soundTimer = 0;
-	cycleDelay = 2000; // 500Hz
-	videoScale = 15;
+	cycleDelay = 2000; // 500Hz, ish
+	videoScale = 10;
 
 	// Initialize RNG
 	randByte = std::uniform_int_distribution<uint16_t>(0, 255U);
 
 	// Load fonts into memory
 	for (int i = 0; i < FONTSET_SIZE; ++i) {
-		Chip8::memory[FONTSET_START_ADDRESS + i] = fontset[i];
+		Chip8::ram[FONTSET_START_ADDRESS + i] = fontset[i];
 	}
 
-	// Set up function pointer table, thanks to austinmorlan for the tut
+	savestates = SaveStates();
+
+	// Set up function pointer table, thanks to austinmorlan for the tutorial
 	// Master Table
 	table[0x0] = &Chip8::Table0;
 	table[0x1] = &Chip8::OP_1nnn;
@@ -131,7 +205,7 @@ void Chip8::Reset() {
 	// Zero out memory for registers
 	memset(video, 0, sizeof(video));
 	memset(display, 0, sizeof(display));
-	memset(memory, 0, sizeof(memory));
+	memset(ram, 0, sizeof(ram));
 	memset(V, 0, sizeof(V));
 	memset(stack, 0, sizeof(stack));
 	memset(keypad, 0, sizeof(keypad));
@@ -149,7 +223,7 @@ void Chip8::Reset() {
 
 	// Load fonts into memory
 	for (int i = 0; i < FONTSET_SIZE; ++i) {
-		Chip8::memory[FONTSET_START_ADDRESS + i] = fontset[i];
+		Chip8::ram[FONTSET_START_ADDRESS + i] = fontset[i];
 	}
 }
 
@@ -164,14 +238,14 @@ void Chip8::LoadRom(const char* filename) {
 	is.close();
 	//copy program into memory
 	for (int i = 0; i < prog.size(); ++i) {
-		memory[START_ADDRESS + i] = prog[i];
+		ram[START_ADDRESS + i] = prog[i];
 	}
 	isLoaded = true;
 }
 
 void Chip8::RunCycle() {
 	// Fetch
-	opcode = memory[pc] << 8 | memory[pc + 1];
+	opcode = ram[pc] << 8 | ram[pc + 1];
 
 	// Increment the PC
 	pc += 2;
@@ -231,7 +305,7 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 	if (showMenu) {
 		// Menu Window
 		ImGui::SetNextWindowPos(ImVec2(5, 5));
-		ImGui::SetNextWindowSize(ImVec2(300, 300));
+		ImGui::SetNextWindowSize(ImVec2(300, 325));
 		ImGui::Begin("Menu", NULL, ImGuiWindowFlags_NoResize);
 		ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 		if (ImGui::Button("Load ROM")) {
@@ -239,10 +313,37 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 		}
 		ImGui::SameLine();
 		ImGui::InputText("##", buf, sizeof(buf), ImGuiInputTextFlags_CharsNoBlank);
+		if (ImGui::Button("Resume"))
+			isRunning = true;
+		ImGui::SameLine();
+		if (ImGui::Button("Pause"))
+			isRunning = false;
+		ImGui::SameLine();
+		if (ImGui::Button("Step")) {
+			isRunning = true;
+			RunCycle();
+			isRunning = false;
+		}
+		ImGui::InputInt("State Number", &whichState, 1, 1);
+		if (whichState <= 0)
+			whichState = 0;
+		else if (whichState >= 9)
+			whichState = 9;
+		if (ImGui::Button("Save State")) {
+			isRunning = false; // Pause the other thread while creating state.
+			savestates.CreateState(this, savestates.States[whichState]);
+			isRunning = true; // Resume the other thread.
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Load State")) {
+			isRunning = false;
+			savestates.Loadstate(this, savestates.States[whichState]);
+		}
+		
 		ImGui::InputInt("Video Scale", &videoScale, 1, 5);
 		if (videoScale <= 1)
 			videoScale = 1;
-		ImGui::InputInt("Clock", &cycleDelay, 5, 25);
+		ImGui::InputInt("Clock Delay", &cycleDelay, 5, 25);
 		if (cycleDelay <= 5)
 			cycleDelay = 5;
 		ImGui::ColorEdit3("FG Color", (float*)&foreground);
@@ -276,10 +377,10 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 		ImGui::End();
 
 		// Debugger Windows
-		ImGui::SetNextWindowPos(ImVec2(5, 305));
+		ImGui::SetNextWindowPos(ImVec2(5, 330));
 		ImGui::Begin("Debugger", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 		ImGui::PushFont(RobotoMono); // Proper push/pop
-		ImGui::BeginChild("DebugL", ImVec2(135, 425), false);
+		ImGui::BeginChild("DebugL", ImVec2(140, 425), false);
 		ImGui::Text("opcode: %x", opcode);
 		ImGui::Text("PC: %hu", pc);
 		ImGui::Text("I: %hu", I);
@@ -303,9 +404,10 @@ void Chip8::RunMenu(int screenWidth, int screenHeight) {
 		ImGui::SetNextWindowPos(ImVec2(305, static_cast<float>(gameH + 5)));
 		ImGui::Begin("RAM", NULL);
 		ImGui::PushFont(RobotoMono); // Proper push/pop
-		ram.Cols = 16;
-		ram.OptShowAscii = true;
-		ram.DrawContents(&memory, sizeof(memory), 0x0);
+		ramViewer.Cols = 16;
+		ramViewer.OptShowAscii = true;
+		ramViewer.ReadOnly = true;
+		ramViewer.DrawContents(&ram, sizeof(ram), 0);
 		ImGui::PopFont(); // Proper push/pop
 		ImGui::End();
 	}
@@ -549,7 +651,7 @@ void Chip8::OP_Dxyn() {
 	V[0xF] = 0;
 
 	for (unsigned int row = 0; row < height; ++row) {
-		uint8_t pixel = memory[I + row];
+		uint8_t pixel = ram[I + row];
 
 		for (unsigned int col = 0; col < 8; ++col) {
 			// Weird math to AND together pixel bytes with bitwise
@@ -680,15 +782,15 @@ void Chip8::OP_Fx33() {
 	uint8_t value = V[x];
 
 	// Ones-place
-	memory[I + 2] = value % 10;
+	ram[I + 2] = value % 10;
 	value /= 10;
 
 	// Tens-place
-	memory[I + 1] = value % 10;
+	ram[I + 1] = value % 10;
 	value /= 10;
 
 	// Hundreds-place
-	memory[I] = value % 10;
+	ram[I] = value % 10;
 
 }
 
@@ -697,7 +799,7 @@ void Chip8::OP_Fx55() {
 	uint8_t x = (opcode & 0x0F00) >> 8u;
 
 	for (int i = 0; i <= x; ++i) {
-		memory[I + i] = V[i];
+		ram[I + i] = V[i];
 	}
 }
 
@@ -706,6 +808,6 @@ void Chip8::OP_Fx65() {
 	uint8_t x = (opcode & 0x0F00) >> 8u;
 
 	for (int i = 0; i <= x; ++i) {
-		V[i] = memory[I + i];
+		V[i] = ram[I + i];
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "state.h"
 #include <cstdint>
 #include <random>
 #include <GLFW/glfw3.h>
@@ -11,6 +12,16 @@ const unsigned int REGISTER_COUNT = 16;
 const unsigned int STACK_LEVELS = 16;
 const int VIDEO_HEIGHT = 32;
 const int VIDEO_WIDTH = 64;
+
+class Chip8;
+
+class SaveStates {
+public:
+	SaveStates();
+	State* States[10];
+	void CreateState(Chip8* chip8, State* state);
+	void Loadstate(Chip8* chip8, State* state);
+};
 
 class Chip8 {
 public:
@@ -43,13 +54,12 @@ public:
 	ImVec4 background = ImVec4(0.03f, 0.03f, 0.03f, 1.00f);
 
 	int videoScale = 10;
-	bool vSync = true;
 
 	// Input
 	uint8_t keypad[KEY_COUNT];
 
 	// Memory
-	uint8_t memory[MEMORY_SIZE];
+	uint8_t ram[MEMORY_SIZE];
 
 	// Registers
 	uint16_t opcode;
@@ -68,6 +78,9 @@ public:
 	bool isLoaded = false;
 	bool isRunning = false;
 	bool updateDrawImage = false;
+
+	//OpenGL Texture
+	GLuint TEX;
 
 private:
 	// Function Pointer Tables
@@ -153,12 +166,12 @@ private:
 
 	bool showMenu = true;
 	bool showDemo = false;
-	char buf[128] = "roms/invaders.ch8";
-	//static MemoryEditor memviewer;
-	MemoryEditor ram;
+	char buf[128] = "roms/breakout.ch8";
+	MemoryEditor ramViewer;
 	ImFont* RobotoMono = nullptr;
 	ImFont* OpenSans = nullptr;
-	GLuint TEX;
+	int whichState = 0;
+	SaveStates savestates;
 
 	// RNG member vars
 	std::default_random_engine randGen;
