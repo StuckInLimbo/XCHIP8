@@ -1,5 +1,6 @@
 #include "state.h"
-#include <vcruntime_string.h>
+#include <stdio.h>
+#include <string.h>
 
 State::State() {
 	memset(video, 0, sizeof(video));
