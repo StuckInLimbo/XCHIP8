@@ -1,6 +1,8 @@
 ﻿// Windows Exclusive Includes
 #if defined(_WIN64) or defined(_WIN32)
 #include <Windows.h>
+#else
+//#include <ncurses.h> // Add the curses lib so that linux can use it
 #endif
 
 // C/C++
@@ -26,7 +28,7 @@ void XBeep() {
 #if defined(_WIN64) or defined(_WIN32)
 	Beep(500, 64);
 #else
-	std::cout << '\a';
+	//beep();
 #endif
 }
 
