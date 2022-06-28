@@ -144,9 +144,6 @@ void GameThread(Chip8* c) {
 				lastCycle = currTime;
 				c->RunCycle();
 			}
-			if (c->soundTimer == 1) {
-				XBeep();
-			}
 		}
 		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
@@ -162,6 +159,11 @@ void TimerThread(Chip8* c)  {
 			auto currTime = std::chrono::high_resolution_clock::now();
 			// Compares the clock to the clock of the last cycle
 			float deltaTime = std::chrono::duration<float, std::chrono::microseconds::period>(currTime - lastCycle).count();
+			
+			if (c->soundTimer == 1)
+				c->shouldBeep = true;
+			else if (c->soundTimer == 0)
+				c->shouldBeep = false;
 
 			if (deltaTime > 16330) { // 16.33ms
 				lastCycle = currTime;
@@ -171,6 +173,17 @@ void TimerThread(Chip8* c)  {
 		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 }
+
+void SoundThread(Chip8* c) {
+	while (true) { // Keep Thread Alive
+		while (c->isLoaded && c->isRunning) {
+			if (c->shouldBeep)
+				XBeep();
+		}
+		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+}
+
 
 int run() {
 	#pragma region Initialization
@@ -234,11 +247,12 @@ int run() {
 	ImVec4 clearColor = ImVec4(35 / 255.0f, 35 / 255.0f, 35 / 255.0f, 1.00f);
 
 	//Init Chip8 Sys
-	Chip8 chip8;
+	Chip8 chip8 = Chip8();
 	int width = 0, height = 0, controls_width = 0;
 
 	std::thread game(GameThread, &chip8);
 	std::thread timers(TimerThread, &chip8);
+	std::thread sound(SoundThread, &chip8);
 
 	// Render loop
 	while (!glfwWindowShouldClose(window)) {
@@ -273,6 +287,7 @@ int run() {
 	glfwTerminate();
 	game.detach();
 	timers.detach();
+	sound.detach();
 
 	return 0;
 }

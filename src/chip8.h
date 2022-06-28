@@ -78,6 +78,7 @@ public:
 	bool isLoaded = false;
 	bool isRunning = false;
 	bool updateDrawImage = false;
+	bool shouldBeep = false;
 
 	//OpenGL Texture
 	GLuint TEX;
