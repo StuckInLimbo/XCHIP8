@@ -411,3 +411,4 @@ FodyWeavers.xsd
 # VS + CMake ignores
 .vs/
 out/
+imgui.ini
